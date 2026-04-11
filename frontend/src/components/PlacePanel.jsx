@@ -15,8 +15,10 @@ const CATEGORY_LABELS = {
 const CUISINE_LABELS = {
   russian:    '🇷🇺 Русская',
   european:   '🇪🇺 Европейская',
-  asian:      '🍜 Азиатская',
+  asian:      '🍜 Паназиатская',
   japanese:   '🍣 Японская',
+  korean:     '🥘 Корейская',
+  chinese:    '🥢 Китайская',
   italian:    '🍕 Итальянская',
   georgian:   '🫕 Грузинская',
   american:   '🍔 Американская',
