@@ -59,7 +59,19 @@ router.get('/:id', (req, res) => {
     `)
     .all(req.params.id);
 
-  res.json({ user, places, reviews });
+  const liked_places = db
+    .prepare(`
+      SELECT p.id, p.name, p.category, p.address,
+        COALESCE((SELECT AVG(rating) FROM reviews WHERE place_id = p.id), 0) as avg_rating,
+        (SELECT COUNT(*) FROM reviews WHERE place_id = p.id) as review_count
+      FROM place_likes pl
+      JOIN places p ON pl.place_id = p.id
+      WHERE pl.user_id = ?
+      ORDER BY pl.created_at DESC
+    `)
+    .all(req.params.id);
+
+  res.json({ user, places, reviews, liked_places });
 });
 
 // Update own profile

@@ -57,7 +57,7 @@ export default function ProfileModal({ userId, onClose, onPlaceClick }) {
     if (loading) return <div className="modal-loading">Загрузка...</div>;
     if (!profile) return <div className="modal-loading">Пользователь не найден</div>;
 
-    const { user, places, reviews } = profile;
+    const { user, places, reviews, liked_places } = profile;
 
     return (
       <>
@@ -140,6 +140,27 @@ export default function ProfileModal({ userId, onClose, onPlaceClick }) {
             <h4>Места</h4>
             <div className="place-list">
               {places.slice(0, 6).map((p) => (
+                <button
+                  key={p.id}
+                  className="place-list-item"
+                  onClick={() => { onClose(); onPlaceClick(p.id); }}
+                >
+                  <span className="place-list-name">{p.name}</span>
+                  {p.review_count > 0 && (
+                    <span className="text-xs text-muted">★ {Number(p.avg_rating).toFixed(1)}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Liked places */}
+        {liked_places?.length > 0 && (
+          <div className="profile-section">
+            <h4>❤️ Избранное</h4>
+            <div className="place-list">
+              {liked_places.map((p) => (
                 <button
                   key={p.id}
                   className="place-list-item"

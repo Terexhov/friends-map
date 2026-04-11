@@ -51,6 +51,21 @@ export default function PlacePanel({ place, onClose, onDelete, onRefresh, onUser
   const isOwner = user && place.user_id === user.id;
   const userReviewed = user && place.reviews?.some((r) => r.user_id === user.id);
   const avgRating = place.review_count > 0 ? Number(place.avg_rating).toFixed(1) : null;
+  const [liked, setLiked] = useState(!!place.user_liked);
+  const [likesCount, setLikesCount] = useState(place.likes_count || 0);
+
+  const handleLikePlace = async () => {
+    if (!user) return;
+    const prev = liked;
+    setLiked(!prev);
+    setLikesCount(c => prev ? c - 1 : c + 1);
+    try {
+      await api.post(`/places/${place.id}/like`);
+    } catch {
+      setLiked(prev);
+      setLikesCount(c => prev ? c + 1 : c - 1);
+    }
+  };
 
   const handleAddReview = async (e) => {
     e.preventDefault();
@@ -122,6 +137,15 @@ export default function PlacePanel({ place, onClose, onDelete, onRefresh, onUser
             <span className="panel-category">{CATEGORY_LABELS[place.category] || place.category}</span>
           </div>
           <div className="panel-header-actions">
+            {user && (
+              <button
+                className={`like-place-btn${liked ? ' liked' : ''}`}
+                onClick={handleLikePlace}
+                title={liked ? 'Убрать из избранного' : 'В избранное'}
+              >
+                {liked ? '❤️' : '🤍'} {likesCount > 0 ? likesCount : ''}
+              </button>
+            )}
             {isOwner && (
               <button className="btn btn-danger btn-sm" onClick={handleDeletePlace}>Удалить</button>
             )}
@@ -165,6 +189,14 @@ export default function PlacePanel({ place, onClose, onDelete, onRefresh, onUser
           {/* INFO TAB */}
           {tab === 'info' && (
             <div>
+              {/* Own rating */}
+              {place.own_rating > 0 && (
+                <div className="own-rating-badge">
+                  <span className="own-rating-label">Моя оценка</span>
+                  <span className="own-rating-value">{place.own_rating}/10</span>
+                </div>
+              )}
+
               {/* Meta chips */}
               <div className="place-chips">
                 {place.cuisine && CUISINE_LABELS[place.cuisine] && (

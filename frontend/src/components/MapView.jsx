@@ -3,7 +3,7 @@ import Map, { Marker, Popup, NavigationControl, ScaleControl } from 'react-map-g
 import Supercluster from 'supercluster';
 import { UPLOADS_URL } from '../api';
 
-const STYLE_URL = 'https://api.protomaps.com/styles/v5/dark/en.json?key=b393d0b2be907b6d';
+const STYLE_URL = 'https://api.protomaps.com/styles/v5/light/en.json?key=b393d0b2be907b6d';
 
 const CATEGORY_COLORS = {
   cafe:        '#f59e0b',
@@ -168,9 +168,7 @@ export default function MapView({ places, selectedPlace, onPlaceClick, onMapClic
                 <span style={{ color: '#94a3b8' }}>({popup.review_count} отзывов)</span>
               </div>
             )}
-            <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: 2 }}>
-              {popup.username}
-            </div>
+            <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: 2 }}>{popup.username}</div>
           </div>
         </Popup>
       )}

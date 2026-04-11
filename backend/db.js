@@ -42,6 +42,7 @@ function initDB() {
       website TEXT,
       hashtags TEXT,
       address TEXT,
+      own_rating INTEGER,
       lat REAL NOT NULL,
       lng REAL NOT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -69,6 +70,16 @@ function initDB() {
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
 
+    CREATE TABLE IF NOT EXISTS place_likes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      place_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(place_id, user_id),
+      FOREIGN KEY (place_id) REFERENCES places(id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
     CREATE TABLE IF NOT EXISTS review_likes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       review_id INTEGER NOT NULL,
@@ -87,6 +98,7 @@ function initDB() {
   if (!cols.includes('website'))     db.exec("ALTER TABLE places ADD COLUMN website TEXT");
   if (!cols.includes('hashtags'))    db.exec("ALTER TABLE places ADD COLUMN hashtags TEXT");
   if (!cols.includes('address'))     db.exec("ALTER TABLE places ADD COLUMN address TEXT");
+  if (!cols.includes('own_rating'))  db.exec("ALTER TABLE places ADD COLUMN own_rating INTEGER");
 
   console.log('Database initialized');
 }

@@ -1,8 +1,10 @@
 import { useAuth } from '../contexts/AuthContext';
 import { UPLOADS_URL } from '../api';
+import { getDrafts } from '../drafts';
 
-export default function Navbar({ onAuthClick, onProfileClick }) {
+export default function Navbar({ onAuthClick, onProfileClick, onDraftsClick }) {
   const { user, logout } = useAuth();
+  const draftsCount = user ? getDrafts().length : 0;
 
   return (
     <nav className="navbar">
@@ -17,6 +19,11 @@ export default function Navbar({ onAuthClick, onProfileClick }) {
       <div className="navbar-actions">
         {user ? (
           <>
+            {draftsCount > 0 && (
+              <button className="btn btn-outline btn-sm drafts-btn" onClick={onDraftsClick}>
+                ✏️ <span className="drafts-count">{draftsCount}</span>
+              </button>
+            )}
             <button className="user-btn" onClick={() => onProfileClick(user.id)}>
               {user.avatar ? (
                 <img

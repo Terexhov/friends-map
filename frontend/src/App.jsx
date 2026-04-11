@@ -6,6 +6,7 @@ import PlacePanel from './components/PlacePanel';
 import AddPlaceModal from './components/AddPlaceModal';
 import AuthModal from './components/AuthModal';
 import ProfileModal from './components/ProfileModal';
+import DraftsModal from './components/DraftsModal';
 import api from './api';
 
 function AppContent() {
@@ -16,6 +17,8 @@ function AppContent() {
   const [addCoords, setAddCoords] = useState(null);
   const [authModal, setAuthModal] = useState(null);
   const [profileUserId, setProfileUserId] = useState(null);
+  const [showDrafts, setShowDrafts] = useState(false);
+  const [activeDraft, setActiveDraft] = useState(null);
 
   const loadPlaces = useCallback(async () => {
     try {
@@ -46,12 +49,14 @@ function AppContent() {
 
   const handleMapClick = (lat, lng) => {
     if (!user) { setAuthModal('login'); return; }
+    setActiveDraft(null);
     setAddCoords({ lat, lng });
   };
 
   const handlePlaceAdded = (newPlace) => {
     setPlaces((prev) => [newPlace, ...prev]);
     setAddCoords(null);
+    setActiveDraft(null);
     openPlace(newPlace.id);
   };
 
@@ -61,9 +66,18 @@ function AppContent() {
     setSelectedData(null);
   };
 
+  const handleResumeDraft = (draft) => {
+    setActiveDraft(draft);
+    setAddCoords(draft.coords);
+  };
+
   return (
     <div className="app">
-      <Navbar onAuthClick={setAuthModal} onProfileClick={setProfileUserId} />
+      <Navbar
+        onAuthClick={setAuthModal}
+        onProfileClick={setProfileUserId}
+        onDraftsClick={() => setShowDrafts(true)}
+      />
 
       <div className="main-content">
         <MapView
@@ -90,7 +104,8 @@ function AppContent() {
       {addCoords && (
         <AddPlaceModal
           coords={addCoords}
-          onClose={() => setAddCoords(null)}
+          draft={activeDraft}
+          onClose={() => { setAddCoords(null); setActiveDraft(null); }}
           onAdded={handlePlaceAdded}
         />
       )}
@@ -108,6 +123,13 @@ function AppContent() {
           userId={profileUserId}
           onClose={() => setProfileUserId(null)}
           onPlaceClick={(id) => { setProfileUserId(null); openPlace(id); }}
+        />
+      )}
+
+      {showDrafts && (
+        <DraftsModal
+          onClose={() => setShowDrafts(false)}
+          onResume={handleResumeDraft}
         />
       )}
     </div>

@@ -64,21 +64,21 @@ button { font-family: inherit; }
 .maplibregl-popup-content {
   border-radius: 12px !important;
   padding: 10px 14px !important;
-  background: #1e2433 !important;
-  color: #e2e8f0 !important;
-  box-shadow: 0 8px 32px rgb(0 0 0/.5) !important;
+  background: #ffffff !important;
+  color: #1e293b !important;
+  box-shadow: 0 8px 32px rgb(0 0 0/.15) !important;
   font-family: inherit !important;
-  border: 1px solid rgb(255 255 255/.08) !important;
+  border: 1px solid var(--border) !important;
 }
-.maplibregl-popup-tip { border-top-color: #1e2433 !important; }
+.maplibregl-popup-tip { border-top-color: #ffffff !important; }
 .maplibregl-popup-close-button { color: #64748b !important; font-size: 1rem !important; top: 4px !important; right: 6px !important; }
-.maplibregl-popup-close-button:hover { color: #e2e8f0 !important; background: none !important; }
-.maplibregl-ctrl-group { border-radius: 12px !important; overflow: hidden; background: #1e2433 !important; box-shadow: 0 4px 16px rgb(0 0 0/.4) !important; border: 1px solid rgb(255 255 255/.08) !important; }
+.maplibregl-popup-close-button:hover { color: #1e293b !important; background: none !important; }
+.maplibregl-ctrl-group { border-radius: 12px !important; overflow: hidden; background: #ffffff !important; box-shadow: 0 4px 16px rgb(0 0 0/.12) !important; border: 1px solid var(--border) !important; }
 .maplibregl-ctrl-group button { width: 36px !important; height: 36px !important; background: transparent !important; }
-.maplibregl-ctrl-group button:hover { background: rgb(255 255 255/.08) !important; }
-.maplibregl-ctrl-group button + button { border-top: 1px solid rgb(255 255 255/.08) !important; }
-.maplibregl-ctrl-icon { filter: invert(1) !important; }
-.maplibregl-ctrl-scale { background: #1e2433 !important; color: #94a3b8 !important; border-color: #94a3b8 !important; border-radius: 6px !important; padding: 2px 6px !important; }
+.maplibregl-ctrl-group button:hover { background: var(--bg) !important; }
+.maplibregl-ctrl-group button + button { border-top: 1px solid var(--border) !important; }
+.maplibregl-ctrl-icon { filter: none !important; }
+.maplibregl-ctrl-scale { background: #ffffff !important; color: #64748b !important; border-color: var(--border) !important; border-radius: 6px !important; padding: 2px 6px !important; }
 
 /* ─── Map Markers ────────────────────────────── */
 .map-pin {
@@ -398,6 +398,57 @@ textarea.form-input { resize: vertical; }
   z-index: 2000; cursor: zoom-out;
 }
 .lightbox img { max-width: 90vw; max-height: 90vh; object-fit: contain; border-radius: 4px; }
+
+/* ─── Like place button ──────────────────────── */
+.like-place-btn {
+  background: none; border: 1px solid var(--border); border-radius: 20px;
+  padding: 4px 10px; cursor: pointer; font-size: .85rem;
+  display: flex; align-items: center; gap: 4px;
+  transition: all .15s; color: var(--muted);
+}
+.like-place-btn:hover { border-color: #f43f5e; background: #fff1f2; }
+.like-place-btn.liked { border-color: #f43f5e; color: #f43f5e; background: #fff1f2; }
+
+/* ─── Own rating badge ───────────────────────── */
+.own-rating-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--primary-bg); border: 1px solid var(--primary);
+  border-radius: 8px; padding: 4px 10px; margin-bottom: .75rem;
+}
+.own-rating-label { font-size: .75rem; color: var(--primary-dark); }
+.own-rating-value { font-size: 1rem; font-weight: 700; color: var(--primary); }
+
+/* ─── Rating 1-10 ────────────────────────────── */
+.rating-10-row { display: flex; gap: 4px; flex-wrap: wrap; }
+.rating-10-btn {
+  width: 34px; height: 34px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--bg);
+  font-size: .85rem; font-weight: 600; cursor: pointer;
+  transition: all .12s; color: var(--text);
+}
+.rating-10-btn:hover { transform: scale(1.1); }
+.rating-10-btn.active.low  { background: #ef4444; border-color: #ef4444; color: #fff; }
+.rating-10-btn.active.mid  { background: #f59e0b; border-color: #f59e0b; color: #fff; }
+.rating-10-btn.active.high { background: #10b981; border-color: #10b981; color: #fff; }
+
+/* ─── Drafts ─────────────────────────────────── */
+.drafts-btn { position: relative; }
+.drafts-count {
+  background: var(--primary); color: #fff;
+  border-radius: 10px; font-size: .7rem; font-weight: 700;
+  padding: 1px 6px; margin-left: 2px;
+}
+.draft-list { display: flex; flex-direction: column; gap: 8px; }
+.draft-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: .75rem; background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.draft-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.draft-name { font-weight: 600; font-size: .875rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.draft-meta { font-size: .75rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.draft-date { font-size: .7rem; color: var(--muted); }
+.draft-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 
 /* ─── Mobile ─────────────────────────────────── */
 @media (max-width: 640px) {

@@ -37,12 +37,24 @@ router.get('/', optionalAuth, (req, res) => {
       SELECT p.*, u.username, u.avatar,
         COALESCE((SELECT AVG(rating) FROM reviews WHERE place_id = p.id), 0) as avg_rating,
         (SELECT COUNT(*) FROM reviews WHERE place_id = p.id) as review_count,
-        (SELECT COUNT(*) FROM place_photos WHERE place_id = p.id) as photo_count
+        (SELECT COUNT(*) FROM place_photos WHERE place_id = p.id) as photo_count,
+        (SELECT COUNT(*) FROM place_likes WHERE place_id = p.id) as likes_count
       FROM places p
       JOIN users u ON p.user_id = u.id
       ORDER BY p.created_at DESC
     `)
     .all();
+
+  if (req.user) {
+    const liked = new Set(
+      db.prepare('SELECT place_id FROM place_likes WHERE user_id = ?')
+        .all(req.user.id).map(l => l.place_id)
+    );
+    places.forEach(p => { p.user_liked = liked.has(p.id) ? 1 : 0; });
+  } else {
+    places.forEach(p => { p.user_liked = 0; });
+  }
+
   res.json(places);
 });
 
@@ -53,7 +65,8 @@ router.get('/:id', optionalAuth, (req, res) => {
     .prepare(`
       SELECT p.*, u.username, u.avatar,
         COALESCE((SELECT AVG(rating) FROM reviews WHERE place_id = p.id), 0) as avg_rating,
-        (SELECT COUNT(*) FROM reviews WHERE place_id = p.id) as review_count
+        (SELECT COUNT(*) FROM reviews WHERE place_id = p.id) as review_count,
+        (SELECT COUNT(*) FROM place_likes WHERE place_id = p.id) as likes_count
       FROM places p
       JOIN users u ON p.user_id = u.id
       WHERE p.id = ?
@@ -79,31 +92,48 @@ router.get('/:id', optionalAuth, (req, res) => {
 
   // Attach user_liked flag safely
   if (req.user) {
-    const liked = new Set(
-      db
-        .prepare('SELECT review_id FROM review_likes WHERE user_id = ?')
-        .all(req.user.id)
-        .map((l) => l.review_id)
+    const likedReviews = new Set(
+      db.prepare('SELECT review_id FROM review_likes WHERE user_id = ?')
+        .all(req.user.id).map(l => l.review_id)
     );
-    reviews.forEach((r) => { r.user_liked = liked.has(r.id) ? 1 : 0; });
+    reviews.forEach(r => { r.user_liked = likedReviews.has(r.id) ? 1 : 0; });
+    const placeLiked = db.prepare('SELECT id FROM place_likes WHERE place_id = ? AND user_id = ?')
+      .get(req.params.id, req.user.id);
+    place.user_liked = placeLiked ? 1 : 0;
   } else {
-    reviews.forEach((r) => { r.user_liked = 0; });
+    reviews.forEach(r => { r.user_liked = 0; });
+    place.user_liked = 0;
   }
 
   res.json({ ...place, photos, reviews });
 });
 
+// Like / unlike a place
+router.post('/:id/like', authMiddleware, (req, res) => {
+  const db = getDB();
+  const place = db.prepare('SELECT id FROM places WHERE id = ?').get(req.params.id);
+  if (!place) return res.status(404).json({ error: 'Place not found' });
+  const existing = db.prepare('SELECT id FROM place_likes WHERE place_id = ? AND user_id = ?')
+    .get(req.params.id, req.user.id);
+  if (existing) {
+    db.prepare('DELETE FROM place_likes WHERE place_id = ? AND user_id = ?').run(req.params.id, req.user.id);
+    return res.json({ liked: false });
+  }
+  db.prepare('INSERT INTO place_likes (place_id, user_id) VALUES (?, ?)').run(req.params.id, req.user.id);
+  res.json({ liked: true });
+});
+
 // Create a new place
 router.post('/', authMiddleware, upload.array('photos', 10), (req, res) => {
-  const { name, description, category, cuisine, price_level, website, hashtags, address, lat, lng } = req.body;
+  const { name, description, category, cuisine, price_level, website, hashtags, address, own_rating, lat, lng } = req.body;
 
   if (!name || !lat || !lng)
     return res.status(400).json({ error: 'name, lat and lng are required' });
 
   const db = getDB();
   const result = db
-    .prepare('INSERT INTO places (user_id, name, description, category, cuisine, price_level, website, hashtags, address, lat, lng) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-    .run(req.user.id, name.trim(), description || null, category || 'other', cuisine || null, price_level ? parseInt(price_level) : 0, website || null, hashtags || null, address || null, parseFloat(lat), parseFloat(lng));
+    .prepare('INSERT INTO places (user_id, name, description, category, cuisine, price_level, website, hashtags, address, own_rating, lat, lng) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    .run(req.user.id, name.trim(), description || null, category || 'other', cuisine || null, price_level ? parseInt(price_level) : 0, website || null, hashtags || null, address || null, own_rating ? parseInt(own_rating) : null, parseFloat(lat), parseFloat(lng));
 
   const placeId = result.lastInsertRowid;
 
