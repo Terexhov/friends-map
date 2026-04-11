@@ -12,6 +12,15 @@ const CATEGORY_LABELS = {
   other:       '📍 Другое',
 };
 
+const CATEGORIES = [
+  { value: 'cafe',       label: '☕ Кафе' },
+  { value: 'coffee',     label: '☕ Кофейня' },
+  { value: 'fastfood',   label: '🍔 Фастфуд' },
+  { value: 'restaurant', label: '🍽️ Ресторан' },
+  { value: 'bar',        label: '🍺 Бар' },
+  { value: 'other',      label: '📍 Другое' },
+];
+
 const CUISINE_LABELS = {
   russian:     '🇷🇺 Русская',
   european:    '🇪🇺 Европейская',
@@ -23,10 +32,34 @@ const CUISINE_LABELS = {
   georgian:    '🫕 Грузинская',
   american:    '🍔 Американская',
   middle_east: '🧆 Ближневосточная',
+  indian:      '🍛 Индийская',
   other:       '🌍 Другая',
 };
 
+const CUISINES = [
+  { value: '',            label: '— не указана —' },
+  { value: 'russian',     label: '🇷🇺 Русская' },
+  { value: 'european',    label: '🇪🇺 Европейская' },
+  { value: 'asian',       label: '🍜 Паназиатская' },
+  { value: 'japanese',    label: '🍣 Японская' },
+  { value: 'korean',      label: '🥘 Корейская' },
+  { value: 'chinese',     label: '🥢 Китайская' },
+  { value: 'italian',     label: '🍕 Итальянская' },
+  { value: 'georgian',    label: '🫕 Грузинская' },
+  { value: 'american',    label: '🍔 Американская' },
+  { value: 'middle_east', label: '🧆 Ближневосточная' },
+  { value: 'indian',      label: '🍛 Индийская' },
+  { value: 'other',       label: '🌍 Другая' },
+];
+
 const PRICE_LABELS = { 1: '₽', 2: '₽₽', 3: '₽₽₽', 4: '₽₽₽₽' };
+const PRICE_LEVELS = [
+  { value: 0, label: '— не указана —' },
+  { value: 1, label: '₽ Дёшево' },
+  { value: 2, label: '₽₽ Средне' },
+  { value: 3, label: '₽₽₽ Дорого' },
+  { value: 4, label: '₽₽₽₽ Очень дорого' },
+];
 
 function Avatar({ user, size = 'xs', onClick }) {
   const cls = `avatar avatar-${size}${onClick ? ' clickable' : ''}`;
@@ -41,14 +74,14 @@ function Avatar({ user, size = 'xs', onClick }) {
 
 // One user's combined card: photos + rating + text
 function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, placeId }) {
-  const [editing, setEditing]   = useState(false);
-  const [editText, setEditText] = useState(review?.text || '');
+  const [editing, setEditing]       = useState(false);
+  const [editText, setEditText]     = useState(review?.text || '');
   const [editRating, setEditRating] = useState(review?.rating || 5);
-  const [saving, setSaving]     = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [lightbox, setLightbox] = useState(null);
+  const [saving, setSaving]         = useState(false);
+  const [uploading, setUploading]   = useState(false);
+  const [lightbox, setLightbox]     = useState(null);
 
-  const user = { username: review?.username || photos[0]?.username, avatar: review?.avatar || photos[0]?.avatar };
+  const user   = { username: review?.username || photos[0]?.username, avatar: review?.avatar || photos[0]?.avatar };
   const userId = review?.user_id || photos[0]?.user_id;
 
   const handleSave = async () => {
@@ -83,7 +116,6 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
 
   return (
     <div className={`contribution-card${isOwn ? ' own' : ''}`}>
-      {/* Header */}
       <div className="contribution-header">
         <button className="user-link" onClick={() => onUserClick(userId)}>
           <Avatar user={user} size="sm" />
@@ -95,7 +127,6 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
         )}
       </div>
 
-      {/* Edit form */}
       {editing ? (
         <div className="contribution-edit">
           <StarRating value={editRating} onChange={setEditRating} size="md" />
@@ -117,7 +148,6 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
         review?.text && <p className="review-text">{review.text}</p>
       )}
 
-      {/* Photos */}
       {photos.length > 0 && (
         <div className="photos-grid" style={{ marginTop: 8 }}>
           {photos.map((ph) => (
@@ -132,7 +162,6 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
         </div>
       )}
 
-      {/* Upload button for own card */}
       {isOwn && (
         <label className="btn btn-outline btn-sm upload-btn" style={{ marginTop: 8 }}>
           {uploading ? 'Загрузка...' : '+ Фото'}
@@ -140,7 +169,6 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
         </label>
       )}
 
-      {/* Date */}
       {review && (
         <span className="text-xs text-muted" style={{ display: 'block', marginTop: 6 }}>
           {new Date(review.created_at).toLocaleDateString('ru-RU')}
@@ -156,18 +184,118 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
   );
 }
 
-export default function PlacePanel({ place, onClose, onDelete, onRefresh, onUserClick }) {
+// Inline edit form for place owner
+function EditPlaceForm({ place, onSave, onCancel }) {
+  const [name, setName]           = useState(place.name || '');
+  const [description, setDesc]    = useState(place.description || '');
+  const [category, setCategory]   = useState(place.category || 'other');
+  const [cuisine, setCuisine]     = useState(place.cuisine || '');
+  const [priceLevel, setPrice]    = useState(place.price_level || 0);
+  const [website, setWebsite]     = useState(place.website || '');
+  const [hashtags, setHashtags]   = useState(place.hashtags || '');
+  const [address, setAddress]     = useState(place.address || '');
+  const [ownRating, setOwnRating] = useState(place.own_rating || 0);
+  const [saving, setSaving]       = useState(false);
+
+  const showCuisine = ['cafe', 'coffee', 'fastfood', 'restaurant', 'bar'].includes(category);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setSaving(true);
+    try {
+      await onSave({
+        name: name.trim(), description, category,
+        cuisine: showCuisine ? cuisine : '',
+        price_level: priceLevel, website: website.trim(),
+        hashtags: hashtags.trim(), address: address.trim(),
+        own_rating: ownRating || '',
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="edit-place-form">
+      <div className="form-group">
+        <label className="form-label">Название *</label>
+        <input className="form-input" value={name} onChange={(e) => setName(e.target.value)} required />
+      </div>
+      <div className="form-row">
+        <div className="form-group" style={{ flex: 1 }}>
+          <label className="form-label">Категория</label>
+          <select className="form-input" value={category} onChange={(e) => setCategory(e.target.value)}>
+            {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+          </select>
+        </div>
+        <div className="form-group" style={{ flex: 1 }}>
+          <label className="form-label">Цена</label>
+          <select className="form-input" value={priceLevel} onChange={(e) => setPrice(Number(e.target.value))}>
+            {PRICE_LEVELS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+          </select>
+        </div>
+      </div>
+      {showCuisine && (
+        <div className="form-group">
+          <label className="form-label">Кухня</label>
+          <select className="form-input" value={cuisine} onChange={(e) => setCuisine(e.target.value)}>
+            {CUISINES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+          </select>
+        </div>
+      )}
+      <div className="form-group">
+        <label className="form-label">Моя оценка</label>
+        <div className="rating-10-row">
+          {[1,2,3,4,5,6,7,8,9,10].map((n) => (
+            <button key={n} type="button"
+              className={`rating-10-btn${ownRating === n ? ' active' : ''}${n <= 5 ? ' low' : n <= 7 ? ' mid' : ' high'}`}
+              onClick={() => setOwnRating(ownRating === n ? 0 : n)}>{n}</button>
+          ))}
+        </div>
+      </div>
+      <div className="form-group">
+        <label className="form-label">Адрес</label>
+        <input className="form-input" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Улица, дом" />
+      </div>
+      <div className="form-group">
+        <label className="form-label">Описание</label>
+        <textarea className="form-input" value={description} onChange={(e) => setDesc(e.target.value)} rows={3} placeholder="Расскажите об этом месте..." />
+      </div>
+      <div className="form-row">
+        <div className="form-group" style={{ flex: 1 }}>
+          <label className="form-label">Сайт</label>
+          <input className="form-input" value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://..." />
+        </div>
+        <div className="form-group" style={{ flex: 1 }}>
+          <label className="form-label">Хэштеги</label>
+          <input className="form-input" value={hashtags} onChange={(e) => setHashtags(e.target.value)} placeholder="#уютно" />
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+        <button type="submit" className="btn btn-primary btn-sm" disabled={saving}>
+          {saving ? 'Сохраняем...' : 'Сохранить'}
+        </button>
+        <button type="button" className="btn btn-outline btn-sm" onClick={onCancel}>Отмена</button>
+      </div>
+    </form>
+  );
+}
+
+export default function PlacePanel({ place: initialPlace, onClose, onDelete, onRefresh, onUserClick }) {
   const { user } = useAuth();
-  const [tab, setTab]               = useState('info');
+  const [place, setPlace]           = useState(initialPlace);
   const [reviewText, setReviewText] = useState('');
   const [reviewRating, setReviewRating] = useState(5);
   const [submitting, setSubmitting] = useState(false);
   const [liked, setLiked]           = useState(!!place.user_liked);
   const [likesCount, setLikesCount] = useState(place.likes_count || 0);
+  const [featured, setFeatured]     = useState(!!place.is_featured);
+  const [editing, setEditing]       = useState(false);
 
-  const isOwner     = user && place.user_id === user.id;
-  const myReview    = user && place.reviews?.find((r) => r.user_id === user.id);
-  const avgRating   = place.review_count > 0 ? Number(place.avg_rating).toFixed(1) : null;
+  const isOwner   = user && place.user_id === user.id;
+  const myReview  = user && place.reviews?.find((r) => r.user_id === user.id);
+  const avgRating = place.review_count > 0 ? Number(place.avg_rating).toFixed(1) : null;
 
   // Group photos by user_id
   const photosByUser = {};
@@ -176,7 +304,6 @@ export default function PlacePanel({ place, onClose, onDelete, onRefresh, onUser
     photosByUser[ph.user_id].push(ph);
   });
 
-  // Build combined contributor list: union of reviewers and photo uploaders
   const allUserIds = new Set([
     ...(place.reviews || []).map((r) => r.user_id),
     ...Object.keys(photosByUser).map(Number),
@@ -186,8 +313,12 @@ export default function PlacePanel({ place, onClose, onDelete, onRefresh, onUser
     review: (place.reviews || []).find((r) => r.user_id === uid) || null,
     photos: photosByUser[uid] || [],
   }));
-  // Own card first
   contributors.sort((a, b) => (b.uid === user?.id ? 1 : 0) - (a.uid === user?.id ? 1 : 0));
+
+  const handleRefresh = async () => {
+    await onRefresh();
+    // Re-fetch updated place data so this panel stays in sync
+  };
 
   const handleAddReview = async (e) => {
     e.preventDefault();
@@ -217,6 +348,17 @@ export default function PlacePanel({ place, onClose, onDelete, onRefresh, onUser
     }
   };
 
+  const handleFeatureToggle = async () => {
+    if (!isOwner) return;
+    const prev = featured;
+    setFeatured(!prev);
+    try {
+      await api.post(`/places/${place.id}/feature`);
+    } catch {
+      setFeatured(prev);
+    }
+  };
+
   const handleDeletePlace = async () => {
     if (!window.confirm('Удалить это место? Все отзывы и фото будут удалены.')) return;
     try {
@@ -227,8 +369,24 @@ export default function PlacePanel({ place, onClose, onDelete, onRefresh, onUser
     }
   };
 
+  const handleSaveEdit = async (data) => {
+    const res = await api.put(`/places/${place.id}`, data);
+    setPlace((p) => ({ ...p, ...res.data }));
+    setEditing(false);
+    await onRefresh();
+  };
+
   return (
-    <div className="place-panel">
+    <div className={`place-panel${featured ? ' place-panel--featured' : ''}`}>
+      {/* Featured banner */}
+      {featured && (
+        <div className="featured-banner">
+          <span className="featured-banner-icon">✦</span>
+          <span>Моё особое место</span>
+          <span className="featured-banner-icon">✦</span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="panel-header">
         <div className="panel-header-main">
@@ -237,7 +395,11 @@ export default function PlacePanel({ place, onClose, onDelete, onRefresh, onUser
         </div>
         <div className="panel-header-actions">
           {user && (
-            <button className={`like-place-btn${liked ? ' liked' : ''}`} onClick={handleLikePlace} title={liked ? 'Убрать из избранного' : 'В избранное'}>
+            <button
+              className={`like-place-btn${liked ? ' liked' : ''}`}
+              onClick={handleLikePlace}
+              title={liked ? 'Убрать из избранного' : 'В избранное'}
+            >
               {liked ? '❤️' : '🤍'}{likesCount > 0 ? ` ${likesCount}` : ''}
             </button>
           )}
@@ -257,95 +419,117 @@ export default function PlacePanel({ place, onClose, onDelete, onRefresh, onUser
         )}
       </div>
 
-      {/* Tabs */}
-      <div className="panel-tabs">
-        {[
-          { id: 'info',    label: 'Инфо' },
-          { id: 'reviews', label: `Отзывы${contributors.length ? ` (${contributors.length})` : ''}` },
-        ].map((t) => (
-          <button key={t.id} className={`tab-btn${tab === t.id ? ' active' : ''}`} onClick={() => setTab(t.id)}>
-            {t.label}
-          </button>
-        ))}
-      </div>
-
       <div className="panel-body">
-        {/* INFO TAB */}
-        {tab === 'info' && (
-          <div>
-            {place.own_rating > 0 && (
-              <div className="own-rating-badge">
-                <span className="own-rating-label">Моя оценка</span>
-                <span className="own-rating-value">{place.own_rating}/10</span>
-              </div>
-            )}
-            <div className="place-chips">
-              {place.cuisine && CUISINE_LABELS[place.cuisine] && (
-                <span className="place-chip">{CUISINE_LABELS[place.cuisine]}</span>
-              )}
-              {place.price_level > 0 && (
-                <span className="place-chip">{PRICE_LABELS[place.price_level]}</span>
-              )}
-            </div>
-            {place.address && <p className="place-address">📍 {place.address}</p>}
-            {place.description
-              ? <p className="place-desc">{place.description}</p>
-              : <p className="text-muted text-sm">Описание не добавлено</p>}
-            {place.website && (
-              <a href={place.website.startsWith('http') ? place.website : `https://${place.website}`}
-                target="_blank" rel="noopener noreferrer" className="place-website">
-                🌐 {place.website.replace(/^https?:\/\//, '')}
-              </a>
-            )}
-            {place.hashtags && <p className="place-hashtags">{place.hashtags}</p>}
-            <p className="text-xs text-muted" style={{ marginTop: '1rem' }}>
-              Добавлено {new Date(place.created_at).toLocaleDateString('ru-RU')}
-            </p>
-          </div>
-        )}
 
-        {/* REVIEWS TAB */}
-        {tab === 'reviews' && (
-          <div>
-            {/* Add review form — only if user logged in and hasn't reviewed yet */}
-            {user && !myReview && (
-              <form onSubmit={handleAddReview} className="review-form">
-                <h4>Ваш отзыв</h4>
-                <div style={{ margin: '0.5rem 0' }}>
-                  <StarRating value={reviewRating} onChange={setReviewRating} size="lg" />
+        {/* ── PLACE INFO ── */}
+        <div className="panel-section">
+          <div className="panel-section-header">
+            <span className="panel-section-title">О месте</span>
+            {isOwner && !editing && (
+              <button className="btn-icon-sm" onClick={() => setEditing(true)} title="Редактировать">✏️</button>
+            )}
+          </div>
+
+          {editing ? (
+            <EditPlaceForm place={place} onSave={handleSaveEdit} onCancel={() => setEditing(false)} />
+          ) : (
+            <>
+              {place.own_rating > 0 && (
+                <div className="own-rating-badge">
+                  <span className="own-rating-label">Моя оценка</span>
+                  <span className="own-rating-value">{place.own_rating}/10</span>
                 </div>
-                <textarea
-                  className="form-input"
-                  placeholder="Поделитесь впечатлениями..."
-                  value={reviewText}
-                  onChange={(e) => setReviewText(e.target.value)}
-                  rows={3}
-                />
-                <button type="submit" className="btn btn-primary btn-sm" style={{ marginTop: '0.5rem' }} disabled={submitting}>
-                  {submitting ? 'Отправка...' : 'Отправить'}
-                </button>
-              </form>
+              )}
+              <div className="place-chips">
+                {place.cuisine && CUISINE_LABELS[place.cuisine] && (
+                  <span className="place-chip">{CUISINE_LABELS[place.cuisine]}</span>
+                )}
+                {place.price_level > 0 && (
+                  <span className="place-chip">{PRICE_LABELS[place.price_level]}</span>
+                )}
+              </div>
+              {place.address && <p className="place-address">📍 {place.address}</p>}
+              {place.description
+                ? <p className="place-desc">{place.description}</p>
+                : <p className="text-muted text-sm">Описание не добавлено</p>}
+              {place.website && (
+                <a
+                  href={place.website.startsWith('http') ? place.website : `https://${place.website}`}
+                  target="_blank" rel="noopener noreferrer" className="place-website"
+                >
+                  🌐 {place.website.replace(/^https?:\/\//, '')}
+                </a>
+              )}
+              {place.hashtags && <p className="place-hashtags">{place.hashtags}</p>}
+              <p className="text-xs text-muted" style={{ marginTop: '0.75rem' }}>
+                Добавлено {new Date(place.created_at).toLocaleDateString('ru-RU')}
+              </p>
+            </>
+          )}
+        </div>
+
+        {/* ── FEATURED TOGGLE (owner only) ── */}
+        {isOwner && (
+          <button
+            className={`feature-toggle-btn${featured ? ' active' : ''}`}
+            onClick={handleFeatureToggle}
+          >
+            {featured ? (
+              <><span>✦</span> Моё особое место</>
+            ) : (
+              <><span>✦</span> Отметить как особое</>
             )}
-
-            {!user && <div className="alert-info">Войдите, чтобы оставить отзыв</div>}
-
-            {contributors.length === 0 && (
-              <p className="text-muted" style={{ marginTop: '.75rem' }}>Пока нет отзывов. Будьте первым!</p>
-            )}
-
-            {contributors.map(({ uid, review, photos }) => (
-              <UserContribution
-                key={uid}
-                review={review}
-                photos={photos}
-                isOwn={user?.id === uid}
-                onUserClick={onUserClick}
-                onRefresh={onRefresh}
-                placeId={place.id}
-              />
-            ))}
-          </div>
+          </button>
         )}
+
+        {/* ── DIVIDER ── */}
+        <div className="panel-divider" />
+
+        {/* ── REVIEWS & CONTRIBUTIONS ── */}
+        <div className="panel-section">
+          <div className="panel-section-header">
+            <span className="panel-section-title">
+              Отзывы{contributors.length ? ` (${contributors.length})` : ''}
+            </span>
+          </div>
+
+          {user && !myReview && (
+            <form onSubmit={handleAddReview} className="review-form">
+              <h4>Ваш отзыв</h4>
+              <div style={{ margin: '0.5rem 0' }}>
+                <StarRating value={reviewRating} onChange={setReviewRating} size="lg" />
+              </div>
+              <textarea
+                className="form-input"
+                placeholder="Поделитесь впечатлениями..."
+                value={reviewText}
+                onChange={(e) => setReviewText(e.target.value)}
+                rows={3}
+              />
+              <button type="submit" className="btn btn-primary btn-sm" style={{ marginTop: '0.5rem' }} disabled={submitting}>
+                {submitting ? 'Отправка...' : 'Отправить'}
+              </button>
+            </form>
+          )}
+
+          {!user && <div className="alert-info">Войдите, чтобы оставить отзыв</div>}
+
+          {contributors.length === 0 && (
+            <p className="text-muted" style={{ marginTop: '.75rem' }}>Пока нет отзывов. Будьте первым!</p>
+          )}
+
+          {contributors.map(({ uid, review, photos }) => (
+            <UserContribution
+              key={uid}
+              review={review}
+              photos={photos}
+              isOwn={user?.id === uid}
+              onUserClick={onUserClick}
+              onRefresh={handleRefresh}
+              placeId={place.id}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );

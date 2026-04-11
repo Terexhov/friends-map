@@ -523,4 +523,103 @@ textarea.form-input { resize: vertical; }
   /* Чуть крупнее touch-зоны */
   .btn-sm { padding: .45rem .9rem; }
   .tab-btn { padding: .75rem .5rem; }
+  .feature-toggle-btn { width: 100%; }
+}
+
+/* ─── Featured banner ─────────────────────────── */
+.place-panel--featured {
+  border-top: 3px solid #f59e0b;
+}
+.featured-banner {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 50%, #fde68a 100%);
+  color: #92400e;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.45rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-bottom: 1px solid #fde68a;
+}
+.featured-banner-icon {
+  color: #f59e0b;
+  font-size: 0.65rem;
+}
+
+/* ─── Feature toggle button ───────────────────── */
+.feature-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  width: 100%;
+  padding: 0.65rem 1rem;
+  margin: 0.75rem 0 0;
+  border-radius: var(--radius);
+  border: 1.5px dashed #d1d5db;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all .18s ease;
+}
+.feature-toggle-btn span { color: #d1d5db; font-size: 0.7rem; }
+.feature-toggle-btn:hover {
+  border-color: #f59e0b;
+  color: #92400e;
+  background: #fffbeb;
+}
+.feature-toggle-btn:hover span { color: #f59e0b; }
+.feature-toggle-btn.active {
+  border-style: solid;
+  border-color: #f59e0b;
+  background: linear-gradient(135deg, #fffbeb, #fef3c7);
+  color: #92400e;
+  font-weight: 600;
+}
+.feature-toggle-btn.active span { color: #f59e0b; }
+
+/* ─── Panel sections (no tabs) ────────────────── */
+.panel-section { padding: 0 0 0.5rem; }
+.panel-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.6rem;
+}
+.panel-section-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.btn-icon-sm {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 2px 4px;
+  border-radius: 4px;
+  opacity: 0.6;
+  transition: opacity .15s;
+}
+.btn-icon-sm:hover { opacity: 1; background: var(--bg); }
+.panel-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 1rem 0;
+}
+
+/* ─── Edit place form ─────────────────────────── */
+.edit-place-form {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  margin-top: 0.5rem;
 }

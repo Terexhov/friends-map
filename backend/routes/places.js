@@ -175,6 +175,57 @@ router.post('/:id/photos', authMiddleware, upload.array('photos', 10), (req, res
   res.json({ added: req.files.length });
 });
 
+// Edit a place (owner only)
+router.put('/:id', authMiddleware, (req, res) => {
+  const db = getDB();
+  const place = db.prepare('SELECT * FROM places WHERE id = ?').get(req.params.id);
+  if (!place) return res.status(404).json({ error: 'Place not found' });
+  if (place.user_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
+
+  const { name, description, category, cuisine, price_level, website, hashtags, address, own_rating } = req.body;
+
+  db.prepare(`
+    UPDATE places SET
+      name = ?, description = ?, category = ?, cuisine = ?,
+      price_level = ?, website = ?, hashtags = ?, address = ?, own_rating = ?
+    WHERE id = ?
+  `).run(
+    (name || place.name).trim(),
+    description ?? place.description,
+    category || place.category,
+    cuisine ?? place.cuisine,
+    price_level !== undefined ? parseInt(price_level) : place.price_level,
+    website ?? place.website,
+    hashtags ?? place.hashtags,
+    address ?? place.address,
+    own_rating !== undefined && own_rating !== '' ? parseInt(own_rating) : place.own_rating,
+    req.params.id
+  );
+
+  const updated = db.prepare(`
+    SELECT p.*, u.username, u.avatar,
+      COALESCE((SELECT AVG(rating) FROM reviews WHERE place_id = p.id), 0) as avg_rating,
+      (SELECT COUNT(*) FROM reviews WHERE place_id = p.id) as review_count,
+      (SELECT COUNT(*) FROM place_photos WHERE place_id = p.id) as photo_count,
+      (SELECT COUNT(*) FROM place_likes WHERE place_id = p.id) as likes_count
+    FROM places p JOIN users u ON p.user_id = u.id
+    WHERE p.id = ?
+  `).get(req.params.id);
+  res.json(updated);
+});
+
+// Toggle featured status (owner only)
+router.post('/:id/feature', authMiddleware, (req, res) => {
+  const db = getDB();
+  const place = db.prepare('SELECT * FROM places WHERE id = ?').get(req.params.id);
+  if (!place) return res.status(404).json({ error: 'Place not found' });
+  if (place.user_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
+
+  const newVal = place.is_featured ? 0 : 1;
+  db.prepare('UPDATE places SET is_featured = ? WHERE id = ?').run(newVal, req.params.id);
+  res.json({ is_featured: newVal });
+});
+
 // Delete a place (owner only)
 router.delete('/:id', authMiddleware, (req, res) => {
   const db = getDB();

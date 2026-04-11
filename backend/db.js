@@ -99,6 +99,7 @@ function initDB() {
   if (!cols.includes('hashtags'))    db.exec("ALTER TABLE places ADD COLUMN hashtags TEXT");
   if (!cols.includes('address'))     db.exec("ALTER TABLE places ADD COLUMN address TEXT");
   if (!cols.includes('own_rating'))  db.exec("ALTER TABLE places ADD COLUMN own_rating INTEGER");
+  if (!cols.includes('is_featured')) db.exec("ALTER TABLE places ADD COLUMN is_featured INTEGER DEFAULT 0");
 
   console.log('Database initialized');
 }

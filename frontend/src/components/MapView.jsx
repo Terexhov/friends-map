@@ -161,7 +161,10 @@ export default function MapView({ places, selectedPlace, onPlaceClick, onMapClic
           onClose={() => setPopup(null)}
         >
           <div style={{ minWidth: 140 }}>
-            <strong style={{ display: 'block', marginBottom: 2 }}>{popup.name}</strong>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
+              <strong>{popup.name}</strong>
+              {popup.is_featured ? <span style={{ color: '#f59e0b', fontSize: '0.8rem' }}>✦</span> : null}
+            </div>
             {popup.review_count > 0 && (
               <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
                 ★ {Number(popup.avg_rating).toFixed(1)}{' '}

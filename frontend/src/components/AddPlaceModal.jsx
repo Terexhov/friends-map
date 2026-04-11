@@ -23,6 +23,7 @@ const CUISINES = [
   { value: 'georgian',    label: '🫕 Грузинская' },
   { value: 'american',    label: '🍔 Американская' },
   { value: 'middle_east', label: '🧆 Ближневосточная' },
+  { value: 'indian',      label: '🍛 Индийская' },
   { value: 'other',       label: '🌍 Другая' },
 ];
 
