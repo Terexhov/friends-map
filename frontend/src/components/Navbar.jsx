@@ -29,7 +29,7 @@ export default function Navbar({ onAuthClick, onProfileClick }) {
                   {user.username[0].toUpperCase()}
                 </div>
               )}
-              <span>{user.username}</span>
+              <span className="user-btn-name">{user.username}</span>
             </button>
             <button className="btn btn-outline btn-sm" onClick={logout}>
               Выйти

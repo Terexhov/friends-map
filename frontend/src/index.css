@@ -328,6 +328,11 @@ textarea.form-input { resize: vertical; }
   background: var(--primary); color: #fff; font-weight: 700;
 }
 
+/* ─── Map hint chip ──────────────────────────── */
+.map-hint-chip {
+  display: none; /* shown only on mobile via media query */
+}
+
 /* ─── Misc ───────────────────────────────────── */
 .place-desc { font-size: .9rem; line-height: 1.6; white-space: pre-wrap; margin-bottom: 1rem; }
 .text-sm    { font-size: .875rem; }
@@ -342,3 +347,65 @@ textarea.form-input { resize: vertical; }
   z-index: 2000; cursor: zoom-out;
 }
 .lightbox img { max-width: 90vw; max-height: 90vh; object-fit: contain; border-radius: 4px; }
+
+/* ─── Mobile ─────────────────────────────────── */
+@media (max-width: 640px) {
+  /* Navbar: скрыть hint, уплотнить */
+  .navbar { padding: 0 .75rem; gap: .5rem; }
+  .navbar-hint { display: none; }
+  .user-btn-name { display: none; }
+  .user-btn { padding: 4px; }
+
+  /* Floating hint chip over the map */
+  .map-hint-chip {
+    display: block;
+    position: absolute;
+    top: .75rem; left: 50%; transform: translateX(-50%);
+    white-space: nowrap;
+    background: rgb(30 36 51/.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #e2e8f0;
+    font-size: .75rem;
+    padding: .4rem .85rem;
+    border-radius: 20px;
+    border: 1px solid rgb(255 255 255/.10);
+    pointer-events: none;
+    z-index: 500;
+  }
+
+  /* PlacePanel → bottom sheet */
+  .place-panel {
+    position: fixed;
+    inset: auto 0 0 0;
+    width: 100%;
+    height: 62dvh;
+    border-left: none;
+    border-top: 1px solid var(--border);
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -8px 32px rgb(0 0 0/.18);
+    animation: slideUp .28s ease;
+  }
+  .place-panel::before {
+    content: '';
+    display: block;
+    width: 36px; height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: .6rem auto 0;
+    flex-shrink: 0;
+  }
+  .panel-header { padding: .75rem 1rem .6rem; }
+  .panel-body { padding: .75rem 1rem; }
+
+  @keyframes slideUp { from { transform: translateY(100%) } to { transform: translateY(0) } }
+
+  /* Modals на мобильном */
+  .modal { border-radius: 12px 12px 0 0; margin: 0; max-height: 92dvh; }
+  .overlay { align-items: flex-end; padding: 0; }
+  .modal-sm, .modal-lg { max-width: 100%; }
+
+  /* Чуть крупнее touch-зоны */
+  .btn-sm { padding: .45rem .9rem; }
+  .tab-btn { padding: .75rem .5rem; }
+}

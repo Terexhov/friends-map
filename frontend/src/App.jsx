@@ -72,6 +72,9 @@ function AppContent() {
           onPlaceClick={openPlace}
           onMapClick={handleMapClick}
         />
+        <div className="map-hint-chip">
+          {user ? '📍 Нажмите на карту, чтобы добавить место' : '👋 Войдите, чтобы добавлять места и отзывы'}
+        </div>
 
         {selectedData && (
           <PlacePanel
