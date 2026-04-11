@@ -58,6 +58,30 @@ router.post('/:id/like', authMiddleware, (req, res) => {
   }
 });
 
+// Edit a review (owner only)
+router.put('/:id', authMiddleware, (req, res) => {
+  const { rating, text } = req.body;
+  const db = getDB();
+  const review = db.prepare('SELECT * FROM reviews WHERE id = ?').get(req.params.id);
+  if (!review) return res.status(404).json({ error: 'Review not found' });
+  if (review.user_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
+
+  const ratingNum = rating ? parseInt(rating) : review.rating;
+  if (ratingNum < 1 || ratingNum > 5)
+    return res.status(400).json({ error: 'Rating must be between 1 and 5' });
+
+  db.prepare('UPDATE reviews SET rating = ?, text = ? WHERE id = ?')
+    .run(ratingNum, text?.trim() ?? review.text, req.params.id);
+
+  const updated = db.prepare(`
+    SELECT r.*, u.username, u.avatar,
+      (SELECT COUNT(*) FROM review_likes WHERE review_id = r.id) as likes_count
+    FROM reviews r JOIN users u ON r.user_id = u.id
+    WHERE r.id = ?
+  `).get(req.params.id);
+  res.json(updated);
+});
+
 // Delete a review (owner only)
 router.delete('/:id', authMiddleware, (req, res) => {
   const db = getDB();

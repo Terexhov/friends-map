@@ -76,7 +76,13 @@ router.get('/:id', optionalAuth, (req, res) => {
   if (!place) return res.status(404).json({ error: 'Place not found' });
 
   const photos = db
-    .prepare('SELECT * FROM place_photos WHERE place_id = ? ORDER BY created_at DESC')
+    .prepare(`
+      SELECT pp.*, u.username, u.avatar
+      FROM place_photos pp
+      JOIN users u ON pp.user_id = u.id
+      WHERE pp.place_id = ?
+      ORDER BY pp.created_at DESC
+    `)
     .all(req.params.id);
 
   const reviews = db

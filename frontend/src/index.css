@@ -399,6 +399,19 @@ textarea.form-input { resize: vertical; }
 }
 .lightbox img { max-width: 90vw; max-height: 90vh; object-fit: contain; border-radius: 4px; }
 
+/* ─── Contribution card ─────────────────────── */
+.contribution-card {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: .85rem; margin-bottom: .75rem; background: var(--surface);
+}
+.contribution-card.own {
+  border-color: var(--primary); background: var(--primary-bg);
+}
+.contribution-header {
+  display: flex; align-items: center; gap: .5rem; margin-bottom: .5rem;
+}
+.contribution-edit { margin-top: .25rem; }
+
 /* ─── Like place button ──────────────────────── */
 .like-place-btn {
   background: none; border: 1px solid var(--border); border-radius: 20px;
