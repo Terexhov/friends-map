@@ -20,18 +20,20 @@
 
 /* ─── Reset ─────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { height: 100%; height: -webkit-fill-available; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   color: var(--text);
   background: var(--bg);
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
-#root { height: 100vh; display: flex; flex-direction: column; }
+#root { height: 100vh; height: 100dvh; display: flex; flex-direction: column; }
 button { font-family: inherit; }
 
 /* ─── Layout ─────────────────────────────────── */
-.app { display: flex; flex-direction: column; height: 100vh; }
+.app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
 .main-content { display: flex; flex: 1; overflow: hidden; position: relative; }
 
 /* ─── Navbar ─────────────────────────────────── */
@@ -198,8 +200,15 @@ button { font-family: inherit; }
   position: fixed; inset: 0;
   background: rgb(0 0 0/.5);
   display: flex; align-items: center; justify-content: center;
-  z-index: 1000; padding: 1rem;
+  z-index: 1000;
+  padding: 1rem;
+  padding-top: max(1rem, env(safe-area-inset-top));
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  overflow-y: auto;
   animation: fadeIn .15s ease;
+}
+@media (max-width: 600px) {
+  .overlay { align-items: flex-start; padding-top: max(1.5rem, env(safe-area-inset-top)); }
 }
 @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
 

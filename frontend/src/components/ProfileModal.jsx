@@ -9,8 +9,10 @@ export default function ProfileModal({ userId, onClose, onPlaceClick }) {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [bio, setBio] = useState('');
+  const [username, setUsername] = useState('');
   const [avatarFile, setAvatarFile] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   const isOwn = me && me.id === userId;
 
@@ -20,6 +22,7 @@ export default function ProfileModal({ userId, onClose, onPlaceClick }) {
       .then((res) => {
         setProfile(res.data);
         setBio(res.data.user.bio || '');
+        setUsername(res.data.user.username || '');
       })
       .catch(() => setProfile(null))
       .finally(() => setLoading(false));
@@ -30,8 +33,10 @@ export default function ProfileModal({ userId, onClose, onPlaceClick }) {
   const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
+    setSaveError('');
     const fd = new FormData();
     fd.append('bio', bio);
+    fd.append('username', username);
     if (avatarFile) fd.append('avatar', avatarFile);
     try {
       const res = await api.put('/users/me', fd, {
@@ -41,8 +46,8 @@ export default function ProfileModal({ userId, onClose, onPlaceClick }) {
       setProfile((p) => ({ ...p, user: res.data }));
       setEditing(false);
       setAvatarFile(null);
-    } catch {
-      alert('Не удалось сохранить профиль');
+    } catch (err) {
+      setSaveError(err.response?.data?.error || 'Не удалось сохранить профиль');
     } finally {
       setSaving(false);
     }
@@ -77,6 +82,16 @@ export default function ProfileModal({ userId, onClose, onPlaceClick }) {
         {/* Edit form */}
         {editing && (
           <form onSubmit={handleSave} className="profile-edit">
+            {saveError && <div className="alert alert-error">{saveError}</div>}
+            <div className="form-group">
+              <label className="form-label">Имя пользователя</label>
+              <input
+                className="form-input"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="username"
+              />
+            </div>
             <div className="form-group">
               <label className="form-label">Аватар</label>
               <input

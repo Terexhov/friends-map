@@ -65,13 +65,21 @@ router.get('/:id', (req, res) => {
 // Update own profile
 router.put('/me', authMiddleware, upload.single('avatar'), async (req, res) => {
   const db = getDB();
-  const { bio } = req.body;
+  const { bio, username } = req.body;
   const current = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
 
   const newAvatar = req.file ? req.file.filename : current.avatar;
   const newBio = bio !== undefined ? bio : current.bio;
+  const newUsername = username ? username.trim() : current.username;
 
-  db.prepare('UPDATE users SET bio = ?, avatar = ? WHERE id = ?').run(newBio, newAvatar, req.user.id);
+  if (newUsername !== current.username) {
+    if (!newUsername || newUsername.length < 2)
+      return res.status(400).json({ error: 'Имя пользователя должно быть не менее 2 символов' });
+    const taken = db.prepare('SELECT id FROM users WHERE username = ? AND id != ?').get(newUsername, req.user.id);
+    if (taken) return res.status(400).json({ error: 'Это имя уже занято' });
+  }
+
+  db.prepare('UPDATE users SET bio = ?, avatar = ?, username = ? WHERE id = ?').run(newBio, newAvatar, newUsername, req.user.id);
 
   const updated = db
     .prepare('SELECT id, username, email, avatar, bio, created_at FROM users WHERE id = ?')
