@@ -615,6 +615,11 @@ textarea.form-input { resize: vertical; }
   margin: 1rem 0;
 }
 
+/* ─── Contribution compose area ──────────────── */
+.contribution-compose {
+  margin-top: 0.5rem;
+}
+
 /* ─── Edit place form ─────────────────────────── */
 .edit-place-form {
   background: var(--bg);

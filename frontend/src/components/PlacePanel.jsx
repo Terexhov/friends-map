@@ -72,28 +72,61 @@ function Avatar({ user, size = 'xs', onClick }) {
   );
 }
 
-// One user's combined card: photos + rating + text
+// Unified contribution card — handles add / view / edit states
 function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, placeId }) {
-  const [editing, setEditing]       = useState(false);
-  const [editText, setEditText]     = useState(review?.text || '');
-  const [editRating, setEditRating] = useState(review?.rating || 5);
-  const [saving, setSaving]         = useState(false);
-  const [uploading, setUploading]   = useState(false);
-  const [lightbox, setLightbox]     = useState(null);
+  const { user } = useAuth();
 
-  const user   = { username: review?.username || photos[0]?.username, avatar: review?.avatar || photos[0]?.avatar };
-  const userId = review?.user_id || photos[0]?.user_id;
+  // Determine initial mode: if own card with no review yet → 'add', otherwise 'view'
+  const [mode, setMode]           = useState(!review && isOwn ? 'add' : 'view');
+  const [editText, setEditText]   = useState(review?.text || '');
+  const [editRating, setEditRating] = useState(review?.rating || 5);
+  const [saving, setSaving]       = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting]   = useState(false);
+  const [lightbox, setLightbox]   = useState(null);
+
+  const cardUser = review
+    ? { username: review.username, avatar: review.avatar, id: review.user_id }
+    : photos[0]
+      ? { username: photos[0].username, avatar: photos[0].avatar, id: photos[0].user_id }
+      : { username: user?.username, avatar: user?.avatar, id: user?.id };
+
+  const handleAdd = async () => {
+    setSaving(true);
+    try {
+      await api.post('/reviews', { place_id: placeId, rating: editRating, text: editText });
+      setMode('view');
+      await onRefresh();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Не удалось добавить отзыв');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleSave = async () => {
     setSaving(true);
     try {
       await api.put(`/reviews/${review.id}`, { rating: editRating, text: editText });
-      setEditing(false);
+      setMode('view');
       await onRefresh();
     } catch {
       alert('Не удалось сохранить');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm('Удалить ваш отзыв?')) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/reviews/${review.id}`);
+      await onRefresh();
+    } catch {
+      alert('Не удалось удалить отзыв');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -114,20 +147,60 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
     }
   };
 
+  const startEdit = () => {
+    setEditText(review?.text || '');
+    setEditRating(review?.rating || 5);
+    setMode('edit');
+  };
+
   return (
     <div className={`contribution-card${isOwn ? ' own' : ''}`}>
+      {/* Header: always visible */}
       <div className="contribution-header">
-        <button className="user-link" onClick={() => onUserClick(userId)}>
-          <Avatar user={user} size="sm" />
-          <span className="review-author">{user.username}</span>
+        <button className="user-link" onClick={() => onUserClick(cardUser.id)}>
+          <Avatar user={cardUser} size="sm" />
+          <span className="review-author">{cardUser.username}</span>
         </button>
-        {review && !editing && <StarRating value={review.rating} readonly size="sm" />}
-        {isOwn && !editing && (
-          <button className="btn-icon" style={{ marginLeft: 'auto' }} onClick={() => setEditing(true)} title="Редактировать">✏️</button>
+
+        {/* Star rating — shown in view mode when review exists */}
+        {review && mode === 'view' && <StarRating value={review.rating} readonly size="sm" />}
+
+        {/* Owner actions */}
+        {isOwn && mode === 'view' && review && (
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
+            <button className="btn-icon-sm" onClick={startEdit} title="Редактировать">✏️</button>
+            <button className="btn-icon-sm" onClick={handleDelete} disabled={deleting} title="Удалить отзыв">🗑️</button>
+          </div>
         )}
       </div>
 
-      {editing ? (
+      {/* ADD mode: own card, no review yet */}
+      {mode === 'add' && (
+        <div className="contribution-compose">
+          <div style={{ marginBottom: 8 }}>
+            <StarRating value={editRating} onChange={setEditRating} size="md" />
+          </div>
+          <textarea
+            className="form-input"
+            placeholder="Поделитесь впечатлениями..."
+            value={editText}
+            onChange={(e) => setEditText(e.target.value)}
+            rows={3}
+          />
+          <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+            <button className="btn btn-primary btn-sm" onClick={handleAdd} disabled={saving}>
+              {saving ? 'Отправка...' : 'Отправить'}
+            </button>
+            <label className="btn btn-outline btn-sm upload-btn">
+              {uploading ? 'Загрузка...' : '+ Фото'}
+              <input type="file" multiple accept="image/*" onChange={handleUpload} style={{ display: 'none' }} disabled={uploading} />
+            </label>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT mode: editing existing review */}
+      {mode === 'edit' && (
         <div className="contribution-edit">
           <StarRating value={editRating} onChange={setEditRating} size="md" />
           <textarea
@@ -141,14 +214,18 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
             <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={saving}>
               {saving ? 'Сохраняем...' : 'Сохранить'}
             </button>
-            <button className="btn btn-outline btn-sm" onClick={() => setEditing(false)}>Отмена</button>
+            <button className="btn btn-outline btn-sm" onClick={() => setMode('view')}>Отмена</button>
           </div>
         </div>
-      ) : (
-        review?.text && <p className="review-text">{review.text}</p>
       )}
 
-      {photos.length > 0 && (
+      {/* VIEW mode: show review text */}
+      {mode === 'view' && review?.text && (
+        <p className="review-text">{review.text}</p>
+      )}
+
+      {/* Photos (always shown in view mode) */}
+      {mode !== 'edit' && photos.length > 0 && (
         <div className="photos-grid" style={{ marginTop: 8 }}>
           {photos.map((ph) => (
             <img
@@ -162,14 +239,16 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
         </div>
       )}
 
-      {isOwn && (
-        <label className="btn btn-outline btn-sm upload-btn" style={{ marginTop: 8 }}>
+      {/* Upload more photos (own card, has review, view mode) */}
+      {isOwn && mode === 'view' && (
+        <label className="btn btn-outline btn-sm upload-btn" style={{ marginTop: 8, display: 'inline-flex' }}>
           {uploading ? 'Загрузка...' : '+ Фото'}
           <input type="file" multiple accept="image/*" onChange={handleUpload} style={{ display: 'none' }} disabled={uploading} />
         </label>
       )}
 
-      {review && (
+      {/* Date */}
+      {review && mode === 'view' && (
         <span className="text-xs text-muted" style={{ display: 'block', marginTop: 6 }}>
           {new Date(review.created_at).toLocaleDateString('ru-RU')}
         </span>
@@ -184,7 +263,7 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
   );
 }
 
-// Inline edit form for place owner
+// Inline edit form for place info (owner)
 function EditPlaceForm({ place, onSave, onCancel }) {
   const [name, setName]           = useState(place.name || '');
   const [description, setDesc]    = useState(place.description || '');
@@ -284,17 +363,13 @@ function EditPlaceForm({ place, onSave, onCancel }) {
 
 export default function PlacePanel({ place: initialPlace, onClose, onDelete, onRefresh, onUserClick }) {
   const { user } = useAuth();
-  const [place, setPlace]           = useState(initialPlace);
-  const [reviewText, setReviewText] = useState('');
-  const [reviewRating, setReviewRating] = useState(5);
-  const [submitting, setSubmitting] = useState(false);
-  const [liked, setLiked]           = useState(!!place.user_liked);
+  const [place, setPlace]       = useState(initialPlace);
+  const [liked, setLiked]       = useState(!!place.user_liked);
   const [likesCount, setLikesCount] = useState(place.likes_count || 0);
-  const [featured, setFeatured]     = useState(!!place.is_featured);
-  const [editing, setEditing]       = useState(false);
+  const [featured, setFeatured] = useState(!!place.is_featured);
+  const [editing, setEditing]   = useState(false);
 
-  const isOwner   = user && place.user_id === user.id;
-  const myReview  = user && place.reviews?.find((r) => r.user_id === user.id);
+  const isOwner = user && place.user_id === user.id;
   const avgRating = place.review_count > 0 ? Number(place.avg_rating).toFixed(1) : null;
 
   // Group photos by user_id
@@ -304,36 +379,19 @@ export default function PlacePanel({ place: initialPlace, onClose, onDelete, onR
     photosByUser[ph.user_id].push(ph);
   });
 
+  // Build contributor list: union of reviewers + photo uploaders + current user (always shown)
   const allUserIds = new Set([
     ...(place.reviews || []).map((r) => r.user_id),
     ...Object.keys(photosByUser).map(Number),
+    ...(user ? [user.id] : []),
   ]);
   const contributors = Array.from(allUserIds).map((uid) => ({
     uid,
     review: (place.reviews || []).find((r) => r.user_id === uid) || null,
     photos: photosByUser[uid] || [],
   }));
+  // Own card always first
   contributors.sort((a, b) => (b.uid === user?.id ? 1 : 0) - (a.uid === user?.id ? 1 : 0));
-
-  const handleRefresh = async () => {
-    await onRefresh();
-    // Re-fetch updated place data so this panel stays in sync
-  };
-
-  const handleAddReview = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
-    try {
-      await api.post('/reviews', { place_id: place.id, rating: reviewRating, text: reviewText });
-      setReviewText('');
-      setReviewRating(5);
-      await onRefresh();
-    } catch (err) {
-      alert(err.response?.data?.error || 'Не удалось добавить отзыв');
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   const handleLikePlace = async () => {
     if (!user) return;
@@ -468,54 +526,32 @@ export default function PlacePanel({ place: initialPlace, onClose, onDelete, onR
           )}
         </div>
 
-        {/* ── FEATURED TOGGLE (owner only) ── */}
+        {/* Featured toggle (owner only) */}
         {isOwner && (
           <button
             className={`feature-toggle-btn${featured ? ' active' : ''}`}
             onClick={handleFeatureToggle}
           >
-            {featured ? (
-              <><span>✦</span> Моё особое место</>
-            ) : (
-              <><span>✦</span> Отметить как особое</>
-            )}
+            {featured
+              ? <><span>✦</span> Моё особое место</>
+              : <><span>✦</span> Отметить как особое</>}
           </button>
         )}
 
-        {/* ── DIVIDER ── */}
         <div className="panel-divider" />
 
-        {/* ── REVIEWS & CONTRIBUTIONS ── */}
+        {/* ── CONTRIBUTIONS ── */}
         <div className="panel-section">
           <div className="panel-section-header">
             <span className="panel-section-title">
-              Отзывы{contributors.length ? ` (${contributors.length})` : ''}
+              Отзывы{contributors.filter(c => c.review || c.photos.length).length > 0
+                ? ` (${contributors.filter(c => c.review || c.photos.length).length})`
+                : ''}
             </span>
           </div>
 
-          {user && !myReview && (
-            <form onSubmit={handleAddReview} className="review-form">
-              <h4>Ваш отзыв</h4>
-              <div style={{ margin: '0.5rem 0' }}>
-                <StarRating value={reviewRating} onChange={setReviewRating} size="lg" />
-              </div>
-              <textarea
-                className="form-input"
-                placeholder="Поделитесь впечатлениями..."
-                value={reviewText}
-                onChange={(e) => setReviewText(e.target.value)}
-                rows={3}
-              />
-              <button type="submit" className="btn btn-primary btn-sm" style={{ marginTop: '0.5rem' }} disabled={submitting}>
-                {submitting ? 'Отправка...' : 'Отправить'}
-              </button>
-            </form>
-          )}
-
-          {!user && <div className="alert-info">Войдите, чтобы оставить отзыв</div>}
-
-          {contributors.length === 0 && (
-            <p className="text-muted" style={{ marginTop: '.75rem' }}>Пока нет отзывов. Будьте первым!</p>
+          {!user && (
+            <div className="alert-info">Войдите, чтобы оставить отзыв</div>
           )}
 
           {contributors.map(({ uid, review, photos }) => (
@@ -525,7 +561,7 @@ export default function PlacePanel({ place: initialPlace, onClose, onDelete, onR
               photos={photos}
               isOwn={user?.id === uid}
               onUserClick={onUserClick}
-              onRefresh={handleRefresh}
+              onRefresh={onRefresh}
               placeId={place.id}
             />
           ))}

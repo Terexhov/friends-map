@@ -127,7 +127,7 @@ export default function AddPlaceModal({ coords, draft, onClose, onAdded }) {
     <div className="overlay">
       <div className="modal">
         <div className="modal-header">
-          <h3>Добавить место</h3>
+          <h3>Добавить отзыв</h3>
           <button className="btn-icon" onClick={handleClose}>✕</button>
         </div>
         <form onSubmit={handleSubmit} className="modal-body">

@@ -12,8 +12,8 @@ export default function Navbar({ onAuthClick, onProfileClick, onDraftsClick }) {
 
       <div className="navbar-hint">
         {user
-          ? '📍 Кликните на карту, чтобы добавить место'
-          : '👋 Войдите, чтобы добавлять места и отзывы'}
+          ? '📍 Кликните на карту, чтобы добавить отзыв'
+          : '👋 Войдите, чтобы делиться местами'}
       </div>
 
       <div className="navbar-actions">
