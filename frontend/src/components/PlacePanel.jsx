@@ -4,15 +4,27 @@ import api, { UPLOADS_URL } from '../api';
 import StarRating from './StarRating';
 
 const CATEGORY_LABELS = {
-  restaurant: '🍽️ Ресторан',
   cafe:        '☕ Кафе',
+  coffee:      '☕ Кофейня',
+  fastfood:    '🍔 Фастфуд',
+  restaurant:  '🍽️ Ресторан',
   bar:         '🍺 Бар',
-  park:        '🌳 Парк',
-  museum:      '🏛️ Музей',
-  shop:        '🛍️ Магазин',
-  entertainment: '🎭 Развлечения',
   other:       '📍 Другое',
 };
+
+const CUISINE_LABELS = {
+  russian:    '🇷🇺 Русская',
+  european:   '🇪🇺 Европейская',
+  asian:      '🍜 Азиатская',
+  japanese:   '🍣 Японская',
+  italian:    '🍕 Итальянская',
+  georgian:   '🫕 Грузинская',
+  american:   '🍔 Американская',
+  middle_east:'🧆 Ближневосточная',
+  other:      '🌍 Другая',
+};
+
+const PRICE_LABELS = { 1: '₽', 2: '₽₽', 3: '₽₽₽', 4: '₽₽₽₽' };
 
 function Avatar({ user, size = 'xs', onClick }) {
   const cls = `avatar avatar-${size} ${onClick ? 'clickable' : ''}`;
@@ -151,19 +163,44 @@ export default function PlacePanel({ place, onClose, onDelete, onRefresh, onUser
           {/* INFO TAB */}
           {tab === 'info' && (
             <div>
+              {/* Meta chips */}
+              <div className="place-chips">
+                {place.cuisine && CUISINE_LABELS[place.cuisine] && (
+                  <span className="place-chip">{CUISINE_LABELS[place.cuisine]}</span>
+                )}
+                {place.price_level > 0 && (
+                  <span className="place-chip">{PRICE_LABELS[place.price_level]}</span>
+                )}
+              </div>
+
+              {place.address && (
+                <p className="place-address">📍 {place.address}</p>
+              )}
+
               {place.description ? (
                 <p className="place-desc">{place.description}</p>
               ) : (
-                <p className="text-muted">Описание не добавлено</p>
+                <p className="text-muted text-sm">Описание не добавлено</p>
               )}
-              <div style={{ marginTop: '1rem' }}>
-                <p className="text-sm text-muted">
-                  Добавлено {new Date(place.created_at).toLocaleDateString('ru-RU')}
-                </p>
-                <p className="text-xs text-muted" style={{ marginTop: 2 }}>
-                  {place.lat.toFixed(6)}, {place.lng.toFixed(6)}
-                </p>
-              </div>
+
+              {place.website && (
+                <a
+                  href={place.website.startsWith('http') ? place.website : `https://${place.website}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="place-website"
+                >
+                  🌐 {place.website.replace(/^https?:\/\//, '')}
+                </a>
+              )}
+
+              {place.hashtags && (
+                <p className="place-hashtags">{place.hashtags}</p>
+              )}
+
+              <p className="text-xs text-muted" style={{ marginTop: '1rem' }}>
+                Добавлено {new Date(place.created_at).toLocaleDateString('ru-RU')}
+              </p>
             </div>
           )}
 

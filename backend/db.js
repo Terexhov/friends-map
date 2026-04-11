@@ -37,6 +37,11 @@ function initDB() {
       name TEXT NOT NULL,
       description TEXT,
       category TEXT DEFAULT 'other',
+      cuisine TEXT,
+      price_level INTEGER DEFAULT 0,
+      website TEXT,
+      hashtags TEXT,
+      address TEXT,
       lat REAL NOT NULL,
       lng REAL NOT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -74,6 +79,14 @@ function initDB() {
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
   `);
+
+  // Migrations: add new columns if they don't exist yet
+  const cols = db.prepare("PRAGMA table_info(places)").all().map(c => c.name);
+  if (!cols.includes('cuisine'))     db.exec("ALTER TABLE places ADD COLUMN cuisine TEXT");
+  if (!cols.includes('price_level')) db.exec("ALTER TABLE places ADD COLUMN price_level INTEGER DEFAULT 0");
+  if (!cols.includes('website'))     db.exec("ALTER TABLE places ADD COLUMN website TEXT");
+  if (!cols.includes('hashtags'))    db.exec("ALTER TABLE places ADD COLUMN hashtags TEXT");
+  if (!cols.includes('address'))     db.exec("ALTER TABLE places ADD COLUMN address TEXT");
 
   console.log('Database initialized');
 }

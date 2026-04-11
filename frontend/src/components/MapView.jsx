@@ -1,22 +1,51 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import Map, { Marker, Popup, NavigationControl, ScaleControl } from 'react-map-gl/maplibre';
+import Supercluster from 'supercluster';
+import { UPLOADS_URL } from '../api';
 
 const STYLE_URL = 'https://api.protomaps.com/styles/v5/dark/en.json?key=b393d0b2be907b6d';
 
-const CATEGORIES = {
-  restaurant:    { emoji: '🍽️', color: '#ef4444' },
-  cafe:          { emoji: '☕', color: '#f59e0b' },
-  bar:           { emoji: '🍺', color: '#8b5cf6' },
-  park:          { emoji: '🌳', color: '#10b981' },
-  museum:        { emoji: '🏛️', color: '#3b82f6' },
-  shop:          { emoji: '🛍️', color: '#ec4899' },
-  entertainment: { emoji: '🎭', color: '#f97316' },
-  other:         { emoji: '📍', color: '#6b7280' },
+const CATEGORY_COLORS = {
+  cafe:        '#f59e0b',
+  coffee:      '#d97706',
+  fastfood:    '#ef4444',
+  restaurant:  '#ef4444',
+  bar:         '#8b5cf6',
+  other:       '#6b7280',
 };
+
+function getColor(cat) {
+  return CATEGORY_COLORS[cat] || CATEGORY_COLORS.other;
+}
 
 export default function MapView({ places, selectedPlace, onPlaceClick, onMapClick }) {
   const mapRef = useRef(null);
   const [popup, setPopup] = useState(null);
+  const [viewState, setViewState] = useState({
+    longitude: 37.6173,
+    latitude: 55.7558,
+    zoom: 11,
+  });
+
+  // Build supercluster index
+  const supercluster = useMemo(() => {
+    const sc = new Supercluster({ radius: 60, maxZoom: 16 });
+    sc.load(
+      places.map((p) => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
+        properties: { ...p },
+      }))
+    );
+    return sc;
+  }, [places]);
+
+  // Compute clusters for current viewport
+  const clusters = useMemo(() => {
+    if (!supercluster) return [];
+    const zoom = Math.floor(viewState.zoom);
+    return supercluster.getClusters([-180, -85, 180, 85], zoom);
+  }, [supercluster, viewState.zoom]);
 
   // Fly to selected place
   useEffect(() => {
@@ -30,7 +59,6 @@ export default function MapView({ places, selectedPlace, onPlaceClick, onMapClic
     });
   }, [selectedPlace]);
 
-  // Close popup when a different place is selected (or deselected)
   useEffect(() => {
     if (popup && popup.id !== selectedPlace) setPopup(null);
   }, [selectedPlace]);
@@ -52,10 +80,20 @@ export default function MapView({ places, selectedPlace, onPlaceClick, onMapClic
     [onPlaceClick]
   );
 
+  const handleClusterClick = useCallback(
+    (e, clusterId, lng, lat) => {
+      e.originalEvent.stopPropagation();
+      const expansionZoom = Math.min(supercluster.getClusterExpansionZoom(clusterId), 20);
+      mapRef.current?.flyTo({ center: [lng, lat], zoom: expansionZoom, duration: 500 });
+    },
+    [supercluster]
+  );
+
   return (
     <Map
       ref={mapRef}
-      initialViewState={{ longitude: 37.6173, latitude: 55.7558, zoom: 11 }}
+      {...viewState}
+      onMove={(e) => setViewState(e.viewState)}
       style={{ flex: 1, height: '100%' }}
       mapStyle={STYLE_URL}
       onClick={handleMapClick}
@@ -63,24 +101,50 @@ export default function MapView({ places, selectedPlace, onPlaceClick, onMapClic
       <NavigationControl position="top-right" visualizePitch />
       <ScaleControl position="bottom-left" />
 
-      {places.map((place) => {
-        const cfg = CATEGORIES[place.category] || CATEGORIES.other;
+      {clusters.map((feature) => {
+        const [lng, lat] = feature.geometry.coordinates;
+        const { cluster, cluster_id, point_count } = feature.properties;
+
+        if (cluster) {
+          return (
+            <Marker key={`cluster-${cluster_id}`} longitude={lng} latitude={lat} anchor="center">
+              <div
+                className="map-cluster"
+                style={{ '--cluster-size': Math.min(28 + point_count * 2, 56) + 'px' }}
+                onClick={(e) => handleClusterClick(e, cluster_id, lng, lat)}
+              >
+                {point_count}
+              </div>
+            </Marker>
+          );
+        }
+
+        const place = feature.properties;
         const isSelected = selectedPlace === place.id;
-        const size = isSelected ? 52 : 42;
+        const color = getColor(place.category);
+
         return (
           <Marker
             key={place.id}
-            longitude={place.lng}
-            latitude={place.lat}
+            longitude={lng}
+            latitude={lat}
             anchor="bottom"
             onClick={(e) => handleMarkerClick(e, place)}
           >
             <div
               className={`map-pin${isSelected ? ' selected' : ''}`}
-              style={{ background: cfg.color, width: size, height: size }}
+              style={{ '--pin-color': color }}
               title={place.name}
             >
-              <span>{cfg.emoji}</span>
+              {place.avatar ? (
+                <img
+                  src={`${UPLOADS_URL}/avatars/${place.avatar}`}
+                  alt={place.username}
+                  className="pin-avatar"
+                />
+              ) : (
+                <span className="pin-initial">{place.username?.[0]?.toUpperCase()}</span>
+              )}
             </div>
           </Marker>
         );
@@ -95,7 +159,6 @@ export default function MapView({ places, selectedPlace, onPlaceClick, onMapClic
           closeButton
           closeOnClick={false}
           onClose={() => setPopup(null)}
-          className="map-popup"
         >
           <div style={{ minWidth: 140 }}>
             <strong style={{ display: 'block', marginBottom: 2 }}>{popup.name}</strong>

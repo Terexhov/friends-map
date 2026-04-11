@@ -15,7 +15,8 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-leaflet": "^4.2.1",
-    "react-map-gl": "^8.1.1"
+    "react-map-gl": "^8.1.1",
+    "supercluster": "^8.0.1"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.1",

@@ -95,15 +95,15 @@ router.get('/:id', optionalAuth, (req, res) => {
 
 // Create a new place
 router.post('/', authMiddleware, upload.array('photos', 10), (req, res) => {
-  const { name, description, category, lat, lng } = req.body;
+  const { name, description, category, cuisine, price_level, website, hashtags, address, lat, lng } = req.body;
 
   if (!name || !lat || !lng)
     return res.status(400).json({ error: 'name, lat and lng are required' });
 
   const db = getDB();
   const result = db
-    .prepare('INSERT INTO places (user_id, name, description, category, lat, lng) VALUES (?, ?, ?, ?, ?, ?)')
-    .run(req.user.id, name.trim(), description || null, category || 'other', parseFloat(lat), parseFloat(lng));
+    .prepare('INSERT INTO places (user_id, name, description, category, cuisine, price_level, website, hashtags, address, lat, lng) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    .run(req.user.id, name.trim(), description || null, category || 'other', cuisine || null, price_level ? parseInt(price_level) : 0, website || null, hashtags || null, address || null, parseFloat(lat), parseFloat(lng));
 
   const placeId = result.lastInsertRowid;
 
