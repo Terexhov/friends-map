@@ -1,6 +1,10 @@
 import axios from 'axios';
 
-export const BASE_URL = 'http://localhost:3001';
+// In production, frontend is served by the same Express server → use relative paths.
+// In dev, the Vite dev server runs on a different port → use absolute localhost URL.
+const IS_DEV = import.meta.env.DEV;
+
+export const BASE_URL = IS_DEV ? 'http://localhost:3001' : '';
 export const UPLOADS_URL = `${BASE_URL}/uploads`;
 
 const api = axios.create({ baseURL: `${BASE_URL}/api` });

@@ -9,19 +9,35 @@ const placesRoutes = require('./routes/places');
 const reviewsRoutes = require('./routes/reviews');
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
+const IS_PROD = process.env.NODE_ENV === 'production';
 
-app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
+// In production the frontend is built into /app/frontend/dist and served by Express
+// CORS is only needed in local dev (different ports)
+if (!IS_PROD) {
+  app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
+}
+
 app.use(express.json());
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Uploads live on the persistent Fly volume
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
+app.use('/uploads', express.static(path.join(DATA_DIR, 'uploads')));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/places', placesRoutes);
 app.use('/api/reviews', reviewsRoutes);
 
+// Serve React in production
+if (IS_PROD) {
+  const DIST = path.join(__dirname, '../frontend/dist');
+  app.use(express.static(DIST));
+  app.get('*', (req, res) => res.sendFile(path.join(DIST, 'index.html')));
+}
+
 initDB();
 
-app.listen(PORT, () => {
-  console.log(`\n  Backend running at http://localhost:${PORT}\n`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`\n  Server running at http://0.0.0.0:${PORT}\n`);
 });
