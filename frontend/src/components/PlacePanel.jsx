@@ -243,23 +243,26 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
         </div>
       )}
 
-      {/* VIEW mode: text + photos + actions together */}
+      {/* VIEW mode: text, then all photos, then actions */}
+      {mode === 'view' && review?.text && <p className="review-text">{review.text}</p>}
+
+      {/* Server photos — shown in all modes */}
+      {photos.length > 0 && (
+        <div className="photos-grid" style={{ marginTop: 8 }}>
+          {photos.map((ph) => (
+            <img
+              key={ph.id}
+              src={`${UPLOADS_URL}/places/${ph.filename}`}
+              alt=""
+              className="photo-thumb"
+              onClick={() => setLightbox(ph.filename)}
+            />
+          ))}
+        </div>
+      )}
+
       {mode === 'view' && (
         <>
-          {review?.text && <p className="review-text">{review.text}</p>}
-          {photos.length > 0 && (
-            <div className="photos-grid" style={{ marginTop: review?.text ? 6 : 0 }}>
-              {photos.map((ph) => (
-                <img
-                  key={ph.id}
-                  src={`${UPLOADS_URL}/places/${ph.filename}`}
-                  alt=""
-                  className="photo-thumb"
-                  onClick={() => setLightbox(ph.filename)}
-                />
-              ))}
-            </div>
-          )}
           {isOwn && (
             <label className="btn btn-outline btn-sm upload-btn" style={{ marginTop: 8, display: 'inline-flex' }}>
               {uploading ? 'Загрузка...' : '+ Фото'}
