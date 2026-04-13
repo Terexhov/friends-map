@@ -227,8 +227,7 @@ button { font-family: inherit; }
 /* ─── Modals ─────────────────────────────────── */
 .overlay {
   position: fixed;
-  top: 0; left: 0; right: 0;
-  height: var(--vvh, 100dvh);
+  inset: 0;
   background: rgb(0 0 0/.5);
   display: flex; align-items: center; justify-content: center;
   z-index: 1000;
@@ -523,10 +522,9 @@ textarea.form-input { resize: vertical; }
   .modal {
     border-radius: 12px 12px 0 0;
     margin: 0;
-    max-height: calc(var(--vvh, 100dvh) - 48px);
-    height: calc(var(--vvh, 100dvh) - 48px);
+    max-height: 92dvh;
+    height: 92dvh;
     overflow: hidden;
-    transition: height .15s ease, max-height .15s ease;
   }
   .modal-sm, .modal-lg { max-width: 100%; }
 

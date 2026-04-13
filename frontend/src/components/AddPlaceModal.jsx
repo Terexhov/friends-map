@@ -131,7 +131,14 @@ export default function AddPlaceModal({ coords, draft, onClose, onAdded }) {
           <button className="btn-icon" onClick={handleClose}>✕</button>
         </div>
         <form id="add-place-form" onSubmit={handleSubmit} style={{ display: 'contents' }}>
-          <div className="modal-body">
+          <div
+            className="modal-body"
+            onFocus={(e) => {
+              if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+                setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 320);
+              }
+            }}
+          >
             <div className="coords-badge">
               📍 {geocoding ? 'Определяем адрес...' : (address || `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`)}
             </div>
