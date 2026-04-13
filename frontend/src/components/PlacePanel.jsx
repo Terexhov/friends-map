@@ -162,24 +162,27 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
 
   return (
     <div className={`contribution-card${isOwn ? ' own' : ''}`}>
-      {/* Header: always visible */}
-      <div className="contribution-header">
-        <button className="user-link" onClick={() => onUserClick(cardUser.id)}>
+      {/* Row 1: avatar + name + actions */}
+      <div className="cc-header">
+        <button className="cc-user" onClick={() => onUserClick(cardUser.id)}>
           <Avatar user={cardUser} size="sm" />
-          <span className="review-author">{cardUser.username}</span>
+          <span className="cc-username">{cardUser.username}</span>
         </button>
-
-        {/* Star rating — shown in view mode when review exists */}
-        {review && mode === 'view' && <StarRating value={review.rating} readonly size="sm" />}
-
-        {/* Owner actions */}
         {isOwn && mode === 'view' && review && (
-          <div style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
+          <div className="cc-actions">
             <button className="btn-icon-sm" onClick={startEdit} title="Редактировать">✏️</button>
-            <button className="btn-icon-sm" onClick={handleDelete} disabled={deleting} title="Удалить отзыв">🗑️</button>
+            <button className="btn-icon-sm" onClick={handleDelete} disabled={deleting} title="Удалить">🗑️</button>
           </div>
         )}
       </div>
+
+      {/* Row 2: stars + date (only in view mode with review) */}
+      {review && mode === 'view' && (
+        <div className="cc-meta">
+          <StarRating value={review.rating} readonly size="sm" />
+          <span className="cc-date">{new Date(review.created_at).toLocaleDateString('ru-RU')}</span>
+        </div>
+      )}
 
       {/* ADD mode: own card, no review yet */}
       {mode === 'add' && (
@@ -194,7 +197,16 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
             onChange={(e) => setEditText(e.target.value)}
             rows={3}
           />
-          {/* Photo previews — shown inline before submitting */}
+          {/* Already uploaded server photos */}
+          {photos.length > 0 && (
+            <div className="photos-grid" style={{ marginTop: 8 }}>
+              {photos.map((ph) => (
+                <img key={ph.id} src={`${UPLOADS_URL}/places/${ph.filename}`} alt=""
+                  className="photo-thumb" onClick={() => setLightbox(ph.filename)} />
+              ))}
+            </div>
+          )}
+          {/* New local photo previews — shown inline before submitting */}
           {composePhotos.length > 0 && (
             <div className="compose-photos-preview">
               {composePhotos.map((f, i) => (
@@ -243,36 +255,23 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
         </div>
       )}
 
-      {/* VIEW mode: text, then all photos, then actions */}
-      {mode === 'view' && review?.text && <p className="review-text">{review.text}</p>}
-
-      {/* Server photos — shown in all modes */}
-      {photos.length > 0 && (
-        <div className="photos-grid" style={{ marginTop: 8 }}>
-          {photos.map((ph) => (
-            <img
-              key={ph.id}
-              src={`${UPLOADS_URL}/places/${ph.filename}`}
-              alt=""
-              className="photo-thumb"
-              onClick={() => setLightbox(ph.filename)}
-            />
-          ))}
-        </div>
-      )}
-
+      {/* VIEW mode */}
       {mode === 'view' && (
         <>
+          {review?.text && <p className="review-text">{review.text}</p>}
+          {photos.length > 0 && (
+            <div className="photos-grid" style={{ marginTop: review?.text ? 6 : 8 }}>
+              {photos.map((ph) => (
+                <img key={ph.id} src={`${UPLOADS_URL}/places/${ph.filename}`} alt=""
+                  className="photo-thumb" onClick={() => setLightbox(ph.filename)} />
+              ))}
+            </div>
+          )}
           {isOwn && (
             <label className="btn btn-outline btn-sm upload-btn" style={{ marginTop: 8, display: 'inline-flex' }}>
               {uploading ? 'Загрузка...' : '+ Фото'}
               <input type="file" multiple accept="image/*" onChange={handleUpload} style={{ display: 'none' }} disabled={uploading} />
             </label>
-          )}
-          {review && (
-            <span className="text-xs text-muted" style={{ display: 'block', marginTop: 6 }}>
-              {new Date(review.created_at).toLocaleDateString('ru-RU')}
-            </span>
           )}
         </>
       )}

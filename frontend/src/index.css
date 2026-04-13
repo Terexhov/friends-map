@@ -399,17 +399,46 @@ textarea.form-input { resize: vertical; }
 }
 .lightbox img { max-width: 90vw; max-height: 90vh; object-fit: contain; border-radius: 4px; }
 
-/* ─── Contribution card ─────────────────────── */
+/* ─── Contribution card (Google Maps style) ──── */
 .contribution-card {
-  border: 1px solid var(--border); border-radius: var(--radius);
-  padding: .85rem; margin-bottom: .75rem; background: var(--surface);
+  padding: .9rem 0;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
 }
-.contribution-card.own {
-  border-color: var(--primary); background: var(--primary-bg);
+.contribution-card:last-child { border-bottom: none; }
+.contribution-card.own { background: transparent; }
+
+/* Row 1: avatar + name + actions */
+.cc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: .35rem;
 }
-.contribution-header {
-  display: flex; align-items: center; gap: .5rem; margin-bottom: .5rem;
+.cc-user {
+  display: flex; align-items: center; gap: .5rem;
+  background: none; border: none; cursor: pointer; padding: 0;
+  text-decoration: none;
 }
+.cc-username {
+  font-weight: 600;
+  font-size: .9rem;
+  color: var(--text);
+}
+.cc-actions { display: flex; gap: 2px; }
+
+/* Row 2: stars + date */
+.cc-meta {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin-bottom: .45rem;
+}
+.cc-date {
+  font-size: .75rem;
+  color: var(--muted);
+}
+
 .contribution-edit { margin-top: .25rem; }
 
 /* ─── Like place button ──────────────────────── */
