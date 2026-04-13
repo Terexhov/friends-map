@@ -261,7 +261,7 @@ button { font-family: inherit; }
 }
 .modal-header h3 { font-size: 1.1rem; font-weight: 700; }
 .modal-body { padding: 1.5rem; overflow-y: auto; -webkit-overflow-scrolling: touch; flex: 1; }
-.modal-footer { display: flex; justify-content: flex-end; gap: .5rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+.modal-footer { display: flex; justify-content: flex-end; gap: .5rem; padding: 1rem 1.5rem; border-top: 1px solid var(--border); flex-shrink: 0; background: var(--surface); }
 .modal-loading { padding: 3rem; text-align: center; color: var(--muted); }
 
 .coords-badge {
@@ -519,8 +519,15 @@ textarea.form-input { resize: vertical; }
   @keyframes slideUp { from { transform: translateY(100%) } to { transform: translateY(0) } }
 
   /* Modals на мобильном */
-  .modal { border-radius: 12px 12px 0 0; margin: 0; max-height: 92dvh; overflow: hidden; }
   .overlay { align-items: flex-end; padding: 0; }
+  .modal {
+    border-radius: 12px 12px 0 0;
+    margin: 0;
+    max-height: calc(var(--vvh, 100dvh) - 48px);
+    height: calc(var(--vvh, 100dvh) - 48px);
+    overflow: hidden;
+    transition: height .15s ease, max-height .15s ease;
+  }
   .modal-sm, .modal-lg { max-width: 100%; }
 
   /* Чуть крупнее touch-зоны */

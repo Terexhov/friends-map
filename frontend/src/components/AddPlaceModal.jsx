@@ -130,101 +130,103 @@ export default function AddPlaceModal({ coords, draft, onClose, onAdded }) {
           <h3>Добавить отзыв</h3>
           <button className="btn-icon" onClick={handleClose}>✕</button>
         </div>
-        <form onSubmit={handleSubmit} className="modal-body">
-          <div className="coords-badge">
-            📍 {geocoding ? 'Определяем адрес...' : (address || `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`)}
-          </div>
-
-          {error && <div className="alert alert-error">{error}</div>}
-
-          <div className="form-group">
-            <label className="form-label">Название *</label>
-            <input
-              className="form-input"
-              placeholder="Название места"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              autoFocus
-            />
-          </div>
-
-          <div className="form-row">
-            <div className="form-group" style={{ flex: 1 }}>
-              <label className="form-label">Категория</label>
-              <select className="form-input" value={category} onChange={(e) => setCategory(e.target.value)}>
-                {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-              </select>
+        <form id="add-place-form" onSubmit={handleSubmit} style={{ display: 'contents' }}>
+          <div className="modal-body">
+            <div className="coords-badge">
+              📍 {geocoding ? 'Определяем адрес...' : (address || `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`)}
             </div>
-            <div className="form-group" style={{ flex: 1 }}>
-              <label className="form-label">Цена</label>
-              <select className="form-input" value={priceLevel} onChange={(e) => setPriceLevel(Number(e.target.value))}>
-                {PRICE_LEVELS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
-              </select>
-            </div>
-          </div>
 
-          {showCuisine && (
+            {error && <div className="alert alert-error">{error}</div>}
+
             <div className="form-group">
-              <label className="form-label">Кухня</label>
-              <select className="form-input" value={cuisine} onChange={(e) => setCuisine(e.target.value)}>
-                {CUISINES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-              </select>
+              <label className="form-label">Название *</label>
+              <input
+                className="form-input"
+                placeholder="Название места"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                autoFocus
+              />
             </div>
-          )}
 
-          <div className="form-group">
-            <label className="form-label">Моя оценка</label>
-            <div className="rating-10-row">
-              {[1,2,3,4,5,6,7,8,9,10].map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  className={`rating-10-btn${ownRating === n ? ' active' : ''}${n <= 5 ? ' low' : n <= 7 ? ' mid' : ' high'}`}
-                  onClick={() => setOwnRating(ownRating === n ? 0 : n)}
-                >
-                  {n}
-                </button>
-              ))}
+            <div className="form-row">
+              <div className="form-group" style={{ flex: 1 }}>
+                <label className="form-label">Категория</label>
+                <select className="form-input" value={category} onChange={(e) => setCategory(e.target.value)}>
+                  {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                </select>
+              </div>
+              <div className="form-group" style={{ flex: 1 }}>
+                <label className="form-label">Цена</label>
+                <select className="form-input" value={priceLevel} onChange={(e) => setPriceLevel(Number(e.target.value))}>
+                  {PRICE_LEVELS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+                </select>
+              </div>
             </div>
-          </div>
 
-          <div className="form-group">
-            <label className="form-label">Адрес</label>
-            <input
-              className="form-input"
-              placeholder="Улица, дом"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-            />
-          </div>
+            {showCuisine && (
+              <div className="form-group">
+                <label className="form-label">Кухня</label>
+                <select className="form-input" value={cuisine} onChange={(e) => setCuisine(e.target.value)}>
+                  {CUISINES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                </select>
+              </div>
+            )}
 
-          <div className="form-group">
-            <label className="form-label">Описание</label>
-            <textarea
-              className="form-input"
-              placeholder="Расскажите об этом месте..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={2}
-            />
-          </div>
-
-          <div className="form-row">
-            <div className="form-group" style={{ flex: 1 }}>
-              <label className="form-label">Сайт</label>
-              <input className="form-input" placeholder="https://..." value={website} onChange={(e) => setWebsite(e.target.value)} />
+            <div className="form-group">
+              <label className="form-label">Моя оценка</label>
+              <div className="rating-10-row">
+                {[1,2,3,4,5,6,7,8,9,10].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    className={`rating-10-btn${ownRating === n ? ' active' : ''}${n <= 5 ? ' low' : n <= 7 ? ' mid' : ' high'}`}
+                    onClick={() => setOwnRating(ownRating === n ? 0 : n)}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="form-group" style={{ flex: 1 }}>
-              <label className="form-label">Хэштеги</label>
-              <input className="form-input" placeholder="#уютно #кофе" value={hashtags} onChange={(e) => setHashtags(e.target.value)} />
-            </div>
-          </div>
 
-          <div className="form-group">
-            <label className="form-label">Фотографии</label>
-            <input type="file" multiple accept="image/*" className="form-input"
-              onChange={(e) => setPhotos(Array.from(e.target.files))} />
-            {photos.length > 0 && <p className="text-sm text-muted" style={{ marginTop: 4 }}>Выбрано: {photos.length} фото</p>}
+            <div className="form-group">
+              <label className="form-label">Адрес</label>
+              <input
+                className="form-input"
+                placeholder="Улица, дом"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Описание</label>
+              <textarea
+                className="form-input"
+                placeholder="Расскажите об этом месте..."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={2}
+              />
+            </div>
+
+            <div className="form-row">
+              <div className="form-group" style={{ flex: 1 }}>
+                <label className="form-label">Сайт</label>
+                <input className="form-input" placeholder="https://..." value={website} onChange={(e) => setWebsite(e.target.value)} />
+              </div>
+              <div className="form-group" style={{ flex: 1 }}>
+                <label className="form-label">Хэштеги</label>
+                <input className="form-input" placeholder="#уютно #кофе" value={hashtags} onChange={(e) => setHashtags(e.target.value)} />
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Фотографии</label>
+              <input type="file" multiple accept="image/*" className="form-input"
+                onChange={(e) => setPhotos(Array.from(e.target.files))} />
+              {photos.length > 0 && <p className="text-sm text-muted" style={{ marginTop: 4 }}>Выбрано: {photos.length} фото</p>}
+            </div>
           </div>
 
           <div className="modal-footer">
