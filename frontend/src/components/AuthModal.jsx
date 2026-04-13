@@ -68,11 +68,6 @@ export default function AuthModal({ mode, onClose, onSwitch }) {
           <button className="btn-icon" onClick={onClose}>✕</button>
         </div>
         <div className="modal-body">
-          {/* Google Sign-In */}
-          <div ref={googleBtnRef} className="google-btn-container" />
-
-          <div className="auth-divider"><span>или</span></div>
-
           <form onSubmit={handleSubmit}>
             {error && <div className="alert alert-error">{error}</div>}
 
@@ -115,6 +110,9 @@ export default function AuthModal({ mode, onClose, onSwitch }) {
             <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
               {loading ? 'Загрузка...' : mode === 'login' ? 'Войти' : 'Создать аккаунт'}
             </button>
+
+            <div className="auth-divider"><span>или</span></div>
+            <div ref={googleBtnRef} className="google-btn-container" />
 
             <p className="auth-switch">
               {mode === 'login' ? (
