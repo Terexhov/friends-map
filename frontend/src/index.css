@@ -615,6 +615,31 @@ textarea.form-input { resize: vertical; }
   margin: 1rem 0;
 }
 
+/* ─── Google Sign-In ─────────────────────────── */
+.google-btn-container {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+.google-btn-container iframe { border-radius: var(--radius) !important; }
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.75rem 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
 /* ─── Contribution compose area ──────────────── */
 .contribution-compose {
   margin-top: 0.5rem;

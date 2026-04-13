@@ -107,11 +107,16 @@ export default function MapView({ places, selectedPlace, onPlaceClick, onMapClic
 
         if (cluster) {
           return (
-            <Marker key={`cluster-${cluster_id}`} longitude={lng} latitude={lat} anchor="center">
+            <Marker
+              key={`cluster-${cluster_id}`}
+              longitude={lng}
+              latitude={lat}
+              anchor="center"
+              onClick={(e) => handleClusterClick(e, cluster_id, lng, lat)}
+            >
               <div
                 className="map-cluster"
                 style={{ '--cluster-size': Math.min(28 + point_count * 2, 56) + 'px' }}
-                onClick={(e) => handleClusterClick(e, cluster_id, lng, lat)}
               >
                 {point_count}
               </div>

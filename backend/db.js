@@ -91,6 +91,10 @@ function initDB() {
     );
   `);
 
+  // Migrations for users table
+  const userCols = db.prepare("PRAGMA table_info(users)").all().map(c => c.name);
+  if (!userCols.includes('google_id')) db.exec("ALTER TABLE users ADD COLUMN google_id TEXT");
+
   // Migrations: add new columns if they don't exist yet
   const cols = db.prepare("PRAGMA table_info(places)").all().map(c => c.name);
   if (!cols.includes('cuisine'))     db.exec("ALTER TABLE places ADD COLUMN cuisine TEXT");
