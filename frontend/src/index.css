@@ -408,13 +408,15 @@ textarea.form-input { resize: vertical; }
 .contribution-card:last-child { border-bottom: none; }
 .contribution-card.own { background: transparent; }
 
-/* Row 1: avatar + name + actions */
+/* Row 1: avatar + name + stars(compose) + actions */
 .cc-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: .5rem;
   margin-bottom: .35rem;
 }
+.cc-header .cc-user { flex: 1; min-width: 0; }
+.cc-header .cc-actions { margin-left: auto; }
 .cc-user {
   display: flex; align-items: center; gap: .5rem;
   background: none; border: none; cursor: pointer; padding: 0;
@@ -619,6 +621,14 @@ textarea.form-input { resize: vertical; }
   font-weight: 600;
 }
 .feature-toggle-btn.active span { color: #f59e0b; }
+
+/* Compact inline variant next to section title */
+.feature-toggle-btn.feature-toggle-inline {
+  width: auto;
+  padding: .25rem .6rem;
+  font-size: .72rem;
+  margin: 0;
+}
 
 /* ─── Panel sections (no tabs) ────────────────── */
 .panel-section { padding: 0 0 0.5rem; }

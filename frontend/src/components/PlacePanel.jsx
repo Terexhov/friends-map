@@ -162,12 +162,16 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
 
   return (
     <div className={`contribution-card${isOwn ? ' own' : ''}`}>
-      {/* Row 1: avatar + name + actions */}
+      {/* Row 1: avatar + name + stars (add/edit) + actions */}
       <div className="cc-header">
         <button className="cc-user" onClick={() => onUserClick(cardUser.id)}>
           <Avatar user={cardUser} size="sm" />
           <span className="cc-username">{cardUser.username}</span>
         </button>
+        {/* Stars in add/edit mode go in the header row */}
+        {(mode === 'add' || mode === 'edit') && (
+          <StarRating value={editRating} onChange={setEditRating} size="sm" />
+        )}
         {isOwn && mode === 'view' && review && (
           <div className="cc-actions">
             <button className="btn-icon-sm" onClick={startEdit} title="Редактировать">✏️</button>
@@ -176,7 +180,7 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
         )}
       </div>
 
-      {/* Row 2: stars + date (only in view mode with review) */}
+      {/* Row 2: stars + date (view mode only) */}
       {review && mode === 'view' && (
         <div className="cc-meta">
           <StarRating value={review.rating} readonly size="sm" />
@@ -184,15 +188,11 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
         </div>
       )}
 
-      {/* ADD mode: own card, no review yet */}
+      {/* ADD mode */}
       {mode === 'add' && (
         <div className="contribution-compose">
-          <div style={{ marginBottom: 8 }}>
-            <StarRating value={editRating} onChange={setEditRating} size="md" />
-          </div>
           <textarea
             className="form-input"
-            placeholder="Поделитесь впечатлениями..."
             value={editText}
             onChange={(e) => setEditText(e.target.value)}
             rows={3}
@@ -221,16 +221,19 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
             <button className="btn btn-primary btn-sm" onClick={handleAdd} disabled={saving}>
               {saving ? 'Отправка...' : 'Отправить'}
             </button>
-            <label className="btn btn-outline btn-sm upload-btn">
-              + Фото
-              <input
-                type="file" multiple accept="image/*" style={{ display: 'none' }}
-                onChange={(e) => {
-                  setComposePhotos((p) => [...p, ...Array.from(e.target.files)]);
-                  e.target.value = '';
-                }}
-              />
-            </label>
+            {composePhotos.length + photos.length < 5 && (
+              <label className="btn btn-outline btn-sm upload-btn">
+                + Фото {composePhotos.length + photos.length > 0 ? `(${composePhotos.length + photos.length}/5)` : ''}
+                <input
+                  type="file" multiple accept="image/*" style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const remaining = 5 - composePhotos.length - photos.length;
+                    setComposePhotos((p) => [...p, ...Array.from(e.target.files).slice(0, remaining)]);
+                    e.target.value = '';
+                  }}
+                />
+              </label>
+            )}
           </div>
         </div>
       )}
@@ -238,7 +241,6 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
       {/* EDIT mode: editing existing review */}
       {mode === 'edit' && (
         <div className="contribution-edit">
-          <StarRating value={editRating} onChange={setEditRating} size="md" />
           <textarea
             className="form-input"
             value={editText}
@@ -548,18 +550,6 @@ export default function PlacePanel({ place: initialPlace, onClose, onDelete, onR
           )}
         </div>
 
-        {/* Featured toggle (owner only) */}
-        {isOwner && (
-          <button
-            className={`feature-toggle-btn${featured ? ' active' : ''}`}
-            onClick={handleFeatureToggle}
-          >
-            {featured
-              ? <><span>✦</span> Моё особое место</>
-              : <><span>✦</span> Отметить как особое</>}
-          </button>
-        )}
-
         <div className="panel-divider" />
 
         {/* ── CONTRIBUTIONS ── */}
@@ -570,6 +560,15 @@ export default function PlacePanel({ place: initialPlace, onClose, onDelete, onR
                 ? ` (${contributors.filter(c => c.review || c.photos.length).length})`
                 : ''}
             </span>
+            {/* Featured toggle (owner only) — inline with section title */}
+            {isOwner && (
+              <button
+                className={`feature-toggle-btn feature-toggle-inline${featured ? ' active' : ''}`}
+                onClick={handleFeatureToggle}
+              >
+                {featured ? <><span>✦</span> Особое</> : <><span>✦</span> Особое</>}
+              </button>
+            )}
           </div>
 
           {!user && (
