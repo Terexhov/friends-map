@@ -19,6 +19,16 @@ if (!IS_PROD) {
 }
 
 app.use(express.json());
+app.use((req, res, next) => {
+  const orig = res.json.bind(res);
+  res.json = (body) => {
+    if (res.statusCode >= 400) {
+      console.error(`[${req.method}] ${req.path} → ${res.statusCode}`, JSON.stringify(body));
+    }
+    return orig(body);
+  };
+  next();
+});
 
 // Uploads live on the persistent Fly volume
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
