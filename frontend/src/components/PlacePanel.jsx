@@ -77,13 +77,14 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
   const { user } = useAuth();
 
   // Determine initial mode: if own card with no review yet → 'add', otherwise 'view'
-  const [mode, setMode]           = useState(!review && isOwn ? 'add' : 'view');
-  const [editText, setEditText]   = useState(review?.text || '');
+  const [mode, setMode]             = useState(!review && isOwn ? 'add' : 'view');
+  const [editText, setEditText]     = useState(review?.text || '');
   const [editRating, setEditRating] = useState(review?.rating || 5);
-  const [saving, setSaving]       = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [deleting, setDeleting]   = useState(false);
-  const [lightbox, setLightbox]   = useState(null);
+  const [composePhotos, setComposePhotos] = useState([]); // local files, not yet uploaded
+  const [saving, setSaving]         = useState(false);
+  const [uploading, setUploading]   = useState(false);
+  const [deleting, setDeleting]     = useState(false);
+  const [lightbox, setLightbox]     = useState(null);
 
   const cardUser = review
     ? { username: review.username, avatar: review.avatar, id: review.user_id }
@@ -95,6 +96,12 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
     setSaving(true);
     try {
       await api.post('/reviews', { place_id: placeId, rating: editRating, text: editText });
+      // upload photos together with the review submission
+      if (composePhotos.length) {
+        const fd = new FormData();
+        composePhotos.forEach((f) => fd.append('photos', f));
+        await api.post(`/places/${placeId}/photos`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      }
       setMode('view');
       await onRefresh();
     } catch (err) {
@@ -187,13 +194,30 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
             onChange={(e) => setEditText(e.target.value)}
             rows={3}
           />
+          {/* Photo previews — shown inline before submitting */}
+          {composePhotos.length > 0 && (
+            <div className="compose-photos-preview">
+              {composePhotos.map((f, i) => (
+                <div key={i} className="compose-photo-remove">
+                  <img src={URL.createObjectURL(f)} alt="" className="compose-photo-thumb" />
+                  <button onClick={() => setComposePhotos((p) => p.filter((_, j) => j !== i))}>✕</button>
+                </div>
+              ))}
+            </div>
+          )}
           <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
             <button className="btn btn-primary btn-sm" onClick={handleAdd} disabled={saving}>
               {saving ? 'Отправка...' : 'Отправить'}
             </button>
             <label className="btn btn-outline btn-sm upload-btn">
-              {uploading ? 'Загрузка...' : '+ Фото'}
-              <input type="file" multiple accept="image/*" onChange={handleUpload} style={{ display: 'none' }} disabled={uploading} />
+              + Фото
+              <input
+                type="file" multiple accept="image/*" style={{ display: 'none' }}
+                onChange={(e) => {
+                  setComposePhotos((p) => [...p, ...Array.from(e.target.files)]);
+                  e.target.value = '';
+                }}
+              />
             </label>
           </div>
         </div>
@@ -219,39 +243,35 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
         </div>
       )}
 
-      {/* VIEW mode: show review text */}
-      {mode === 'view' && review?.text && (
-        <p className="review-text">{review.text}</p>
-      )}
-
-      {/* Photos (always shown in view mode) */}
-      {mode !== 'edit' && photos.length > 0 && (
-        <div className="photos-grid" style={{ marginTop: 8 }}>
-          {photos.map((ph) => (
-            <img
-              key={ph.id}
-              src={`${UPLOADS_URL}/places/${ph.filename}`}
-              alt=""
-              className="photo-thumb"
-              onClick={() => setLightbox(ph.filename)}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Upload more photos (own card, has review, view mode) */}
-      {isOwn && mode === 'view' && (
-        <label className="btn btn-outline btn-sm upload-btn" style={{ marginTop: 8, display: 'inline-flex' }}>
-          {uploading ? 'Загрузка...' : '+ Фото'}
-          <input type="file" multiple accept="image/*" onChange={handleUpload} style={{ display: 'none' }} disabled={uploading} />
-        </label>
-      )}
-
-      {/* Date */}
-      {review && mode === 'view' && (
-        <span className="text-xs text-muted" style={{ display: 'block', marginTop: 6 }}>
-          {new Date(review.created_at).toLocaleDateString('ru-RU')}
-        </span>
+      {/* VIEW mode: text + photos + actions together */}
+      {mode === 'view' && (
+        <>
+          {review?.text && <p className="review-text">{review.text}</p>}
+          {photos.length > 0 && (
+            <div className="photos-grid" style={{ marginTop: review?.text ? 6 : 0 }}>
+              {photos.map((ph) => (
+                <img
+                  key={ph.id}
+                  src={`${UPLOADS_URL}/places/${ph.filename}`}
+                  alt=""
+                  className="photo-thumb"
+                  onClick={() => setLightbox(ph.filename)}
+                />
+              ))}
+            </div>
+          )}
+          {isOwn && (
+            <label className="btn btn-outline btn-sm upload-btn" style={{ marginTop: 8, display: 'inline-flex' }}>
+              {uploading ? 'Загрузка...' : '+ Фото'}
+              <input type="file" multiple accept="image/*" onChange={handleUpload} style={{ display: 'none' }} disabled={uploading} />
+            </label>
+          )}
+          {review && (
+            <span className="text-xs text-muted" style={{ display: 'block', marginTop: 6 }}>
+              {new Date(review.created_at).toLocaleDateString('ru-RU')}
+            </span>
+          )}
+        </>
       )}
 
       {lightbox && (

@@ -246,6 +246,7 @@ button { font-family: inherit; }
 .modal {
   background: var(--surface); border-radius: 12px;
   width: 100%; max-width: 520px; max-height: 90vh;
+  display: flex; flex-direction: column; overflow: hidden;
   overflow-y: auto; box-shadow: var(--shadow-lg);
   animation: popIn .2s ease;
 }
@@ -259,7 +260,7 @@ button { font-family: inherit; }
   position: sticky; top: 0; background: var(--surface); z-index: 1;
 }
 .modal-header h3 { font-size: 1.1rem; font-weight: 700; }
-.modal-body { padding: 1.5rem; }
+.modal-body { padding: 1.5rem; overflow-y: auto; -webkit-overflow-scrolling: touch; flex: 1; }
 .modal-footer { display: flex; justify-content: flex-end; gap: .5rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
 .modal-loading { padding: 3rem; text-align: center; color: var(--muted); }
 
@@ -516,7 +517,7 @@ textarea.form-input { resize: vertical; }
   @keyframes slideUp { from { transform: translateY(100%) } to { transform: translateY(0) } }
 
   /* Modals на мобильном */
-  .modal { border-radius: 12px 12px 0 0; margin: 0; max-height: 92dvh; }
+  .modal { border-radius: 12px 12px 0 0; margin: 0; max-height: 92dvh; overflow: hidden; }
   .overlay { align-items: flex-end; padding: 0; }
   .modal-sm, .modal-lg { max-width: 100%; }
 
@@ -643,6 +644,41 @@ textarea.form-input { resize: vertical; }
 /* ─── Contribution compose area ──────────────── */
 .contribution-compose {
   margin-top: 0.5rem;
+}
+.compose-photos-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.compose-photo-thumb {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+.compose-photo-remove {
+  position: relative;
+  display: inline-block;
+}
+.compose-photo-remove button {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--danger);
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-size: 9px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
 }
 
 /* ─── Edit place form ─────────────────────────── */
