@@ -73,7 +73,7 @@ function Avatar({ user, size = 'xs', onClick }) {
 }
 
 // Unified contribution card — handles add / view / edit states
-function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, placeId }) {
+function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, placeId, placeCreatedAt }) {
   const { user } = useAuth();
 
   // Determine initial mode: if own card with no review yet → 'add', otherwise 'view'
@@ -161,11 +161,17 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
         )}
       </div>
 
-      {/* Non-own: stars + date below header */}
-      {!isOwn && review && mode === 'view' && (
+      {/* Stars + date below header */}
+      {mode === 'view' && (review || isOwn) && (
         <div className="cc-meta">
-          <StarRating value={review.rating} readonly size="sm" />
-          <span className="cc-date">{new Date(review.created_at).toLocaleDateString('ru-RU')}</span>
+          {review && <StarRating value={review.rating} readonly size="sm" />}
+          <span className="cc-date">
+            {review
+              ? new Date(review.created_at).toLocaleDateString('ru-RU')
+              : placeCreatedAt
+                ? new Date(placeCreatedAt).toLocaleDateString('ru-RU')
+                : ''}
+          </span>
         </div>
       )}
 
@@ -547,6 +553,7 @@ export default function PlacePanel({ place: initialPlace, onClose, onDelete, onR
               onUserClick={onUserClick}
               onRefresh={onRefresh}
               placeId={place.id}
+              placeCreatedAt={place.created_at}
             />
           ))}
         </div>
