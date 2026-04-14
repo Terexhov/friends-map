@@ -33,6 +33,7 @@ function AppContent() {
 
   const openPlace = useCallback(async (id) => {
     setSelectedId(id);
+    setSelectedData(null); // clear previous panel immediately
     try {
       const res = await api.get(`/places/${id}`);
       setSelectedData(res.data);
@@ -92,6 +93,7 @@ function AppContent() {
 
         {selectedData && (
           <PlacePanel
+            key={selectedData.id}
             place={selectedData}
             onClose={() => { setSelectedId(null); setSelectedData(null); }}
             onDelete={handlePlaceDeleted}
