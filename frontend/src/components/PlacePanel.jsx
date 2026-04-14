@@ -224,10 +224,10 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMod
       {/* VIEW mode */}
       {(!isOwn || !isEditMode) && (
         <>
-          {/* Author header */}
-          {review && (
+          {/* Author header — show for any contributor (review or photos) */}
+          {(review || photos.length > 0) && (
             <div className="cc-review-header">
-              <span className="cc-review-author">{review.username}</span>
+              <span className="cc-review-author">{review?.username ?? photos[0]?.username}</span>
               {isOwn && <span className="cc-review-own-label">вы</span>}
             </div>
           )}
