@@ -443,12 +443,11 @@ textarea.form-input { resize: vertical; }
 
 /* ─── Like place button ──────────────────────── */
 .like-place-btn {
-  background: none; border: 1px solid var(--border); border-radius: 20px;
-  padding: 4px 10px; cursor: pointer; font-size: .85rem;
+  background: none; border-color: var(--border); border-radius: 6px;
   display: flex; align-items: center; gap: 4px;
   transition: all .15s; color: var(--muted);
 }
-.like-place-btn:hover { border-color: #f43f5e; background: #fff1f2; }
+.like-place-btn:hover { border-color: #f43f5e; background: #fff1f2; color: #f43f5e; }
 .like-place-btn.liked { border-color: #f43f5e; color: #f43f5e; background: #fff1f2; }
 
 /* ─── Own rating badge ───────────────────────── */
@@ -560,7 +559,7 @@ textarea.form-input { resize: vertical; }
   /* Чуть крупнее touch-зоны */
   .btn-sm { padding: .45rem .9rem; }
   .tab-btn { padding: .75rem .5rem; }
-  .feature-toggle-btn { width: 100%; }
+  .feature-toggle-btn { width: auto; }
 }
 
 /* ─── Featured banner ─────────────────────────── */

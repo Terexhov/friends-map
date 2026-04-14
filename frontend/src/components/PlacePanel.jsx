@@ -124,11 +124,11 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId }) {
 
   return (
     <div className={`contribution-card${isOwn ? ' own' : ''}`}>
-      {/* Edit/delete actions — only for own card in view mode */}
-      {isOwn && mode === 'view' && review && (
+      {/* Edit/delete actions — own card, view mode, has any content */}
+      {isOwn && mode === 'view' && (review || photos.length > 0) && (
         <div className="cc-actions" style={{ justifyContent: 'flex-end', marginBottom: 4 }}>
           <button className="btn-icon-sm" onClick={startEdit} title="Редактировать">✏️</button>
-          <button className="btn-icon-sm" onClick={handleDeleteReview} disabled={deleting} title="Удалить">🗑️</button>
+          {review && <button className="btn-icon-sm" onClick={handleDeleteReview} disabled={deleting} title="Удалить">🗑️</button>}
         </div>
       )}
 
@@ -400,14 +400,13 @@ export default function PlacePanel({ place: initialPlace, onClose, onDelete, onR
             <button
               className={`feature-toggle-btn${featured ? ' active' : ''}`}
               onClick={handleFeatureToggle}
-              title={featured ? 'Убрать из особых' : 'Сделать особым'}
             >
-              ✦
+              <span>✦</span> Моё особое место
             </button>
           )}
           {user && (
             <button
-              className={`like-place-btn${liked ? ' liked' : ''}`}
+              className={`btn btn-sm like-place-btn${liked ? ' liked' : ''}`}
               onClick={handleLikePlace}
               title={liked ? 'Убрать из избранного' : 'В избранное'}
             >
@@ -468,8 +467,6 @@ export default function PlacePanel({ place: initialPlace, onClose, onDelete, onR
             </>
           )}
         </div>
-
-        <div className="panel-divider" />
 
         <div className="panel-section">
           {!user && (
