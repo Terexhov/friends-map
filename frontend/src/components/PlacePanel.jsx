@@ -61,7 +61,7 @@ const PRICE_LEVELS = [
 ];
 
 // Contribution card — view and edit modes, no internal edit toggle
-function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMode, onEditClose, uid, onUserClick }) {
+function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMode, onEditClose }) {
   const { user } = useAuth();
   const [editText, setEditText]         = useState(review?.text || '');
   const [editRating, setEditRating]     = useState(review?.rating || 5);
@@ -224,16 +224,6 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMod
       {/* VIEW mode */}
       {(!isOwn || !isEditMode) && (
         <>
-          {/* Author header — show for any contributor (review or photos) */}
-          {(review || photos.length > 0) && (
-            <div className="cc-review-header">
-              <button className="cc-review-author-btn" onClick={() => onUserClick?.(uid)}>
-                {review?.username ?? photos[0]?.username}
-              </button>
-              {isOwn && <span className="cc-review-own-label">вы</span>}
-            </div>
-          )}
-
           {photos.length > 0 && (
             <div className="photos-grid" style={{ marginTop: 4 }}>
               {photos.map((ph) => (
@@ -549,20 +539,32 @@ export default function PlacePanel({ place: initialPlace, onClose, onDelete, onR
             <div className="alert-info">Войдите, чтобы оставить отзыв</div>
           )}
 
-          {contributors.map(({ uid, review, photos }) => (
-            <UserContribution
-              key={uid}
-              uid={uid}
-              review={review}
-              photos={photos}
-              isOwn={user?.id === uid}
-              onRefresh={onRefresh}
-              placeId={place.id}
-              isEditMode={editing && user?.id === uid}
-              onEditClose={() => setEditing(false)}
-              onUserClick={onUserClick}
-            />
-          ))}
+          {contributors.map(({ uid, review, photos }) => {
+            const username = review?.username ?? photos[0]?.username;
+            const isOwn = user?.id === uid;
+            if (!username && !review && photos.length === 0) return null;
+            return (
+              <div key={uid}>
+                {username && (
+                  <div className="panel-section-header" style={{ marginTop: 8 }}>
+                    <button className="cc-review-author-btn panel-section-title" onClick={() => onUserClick?.(uid)}>
+                      {username}
+                    </button>
+                    {isOwn && <span className="cc-review-own-label">вы</span>}
+                  </div>
+                )}
+                <UserContribution
+                  review={review}
+                  photos={photos}
+                  isOwn={isOwn}
+                  onRefresh={onRefresh}
+                  placeId={place.id}
+                  isEditMode={editing && isOwn}
+                  onEditClose={() => setEditing(false)}
+                />
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
