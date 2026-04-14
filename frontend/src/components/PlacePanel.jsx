@@ -61,7 +61,7 @@ const PRICE_LEVELS = [
 ];
 
 // Contribution card — view and edit modes, no internal edit toggle
-function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMode, onEditClose }) {
+function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMode, onEditClose, uid, onUserClick }) {
   const { user } = useAuth();
   const [editText, setEditText]         = useState(review?.text || '');
   const [editRating, setEditRating]     = useState(review?.rating || 5);
@@ -227,7 +227,9 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMod
           {/* Author header — show for any contributor (review or photos) */}
           {(review || photos.length > 0) && (
             <div className="cc-review-header">
-              <span className="cc-review-author">{review?.username ?? photos[0]?.username}</span>
+              <button className="cc-review-author-btn" onClick={() => onUserClick?.(uid)}>
+                {review?.username ?? photos[0]?.username}
+              </button>
               {isOwn && <span className="cc-review-own-label">вы</span>}
             </div>
           )}
@@ -381,7 +383,7 @@ function EditPlaceForm({ place, onSave, onCancel }) {
   );
 }
 
-export default function PlacePanel({ place: initialPlace, onClose, onDelete, onRefresh }) {
+export default function PlacePanel({ place: initialPlace, onClose, onDelete, onRefresh, onUserClick }) {
   const { user } = useAuth();
   const [place, setPlace]           = useState(initialPlace);
   const [liked, setLiked]           = useState(!!place.user_liked);
@@ -550,6 +552,7 @@ export default function PlacePanel({ place: initialPlace, onClose, onDelete, onR
           {contributors.map(({ uid, review, photos }) => (
             <UserContribution
               key={uid}
+              uid={uid}
               review={review}
               photos={photos}
               isOwn={user?.id === uid}
@@ -557,6 +560,7 @@ export default function PlacePanel({ place: initialPlace, onClose, onDelete, onR
               placeId={place.id}
               isEditMode={editing && user?.id === uid}
               onEditClose={() => setEditing(false)}
+              onUserClick={onUserClick}
             />
           ))}
         </div>

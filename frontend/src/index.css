@@ -419,11 +419,16 @@ textarea.form-input { resize: vertical; }
   gap: .4rem;
   margin-bottom: .3rem;
 }
-.cc-review-author {
+.cc-review-author-btn {
+  background: none;
+  border: none;
+  padding: 0;
   font-weight: 600;
   font-size: .875rem;
   color: var(--text);
+  cursor: pointer;
 }
+.cc-review-author-btn:hover { color: var(--primary); }
 .cc-review-own-label {
   font-size: .7rem;
   color: var(--muted);
