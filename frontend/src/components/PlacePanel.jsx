@@ -162,14 +162,13 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
 
   return (
     <div className={`contribution-card${isOwn ? ' own' : ''}`}>
-      {/* Row 1: avatar + name + stars (add/edit) + actions */}
+      {/* Header: avatar + name + (own add/edit: stars) + (own view: actions) */}
       <div className="cc-header">
         <button className="cc-user" onClick={() => onUserClick(cardUser.id)}>
           <Avatar user={cardUser} size="sm" />
           <span className="cc-username">{cardUser.username}</span>
         </button>
-        {/* Stars in add/edit mode go in the header row */}
-        {(mode === 'add' || mode === 'edit') && (
+        {isOwn && (mode === 'add' || mode === 'edit') && (
           <StarRating value={editRating} onChange={setEditRating} size="sm" />
         )}
         {isOwn && mode === 'view' && review && (
@@ -180,24 +179,88 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
         )}
       </div>
 
-      {/* Row 2: stars + date (view mode only) */}
-      {review && mode === 'view' && (
+      {/* Non-own: stars + date below header */}
+      {!isOwn && review && mode === 'view' && (
         <div className="cc-meta">
           <StarRating value={review.rating} readonly size="sm" />
           <span className="cc-date">{new Date(review.created_at).toLocaleDateString('ru-RU')}</span>
         </div>
       )}
 
-      {/* ADD mode */}
-      {mode === 'add' && (
-        <div className="contribution-compose">
-          <textarea
-            className="form-input"
-            value={editText}
-            onChange={(e) => setEditText(e.target.value)}
-            rows={3}
-          />
-          {/* Already uploaded server photos */}
+      {/* ── OWN CARD: photos only, no text ── */}
+      {isOwn && (
+        <>
+          {mode === 'add' && (
+            <div className="contribution-compose">
+              {photos.length > 0 && (
+                <div className="photos-grid" style={{ marginTop: 8 }}>
+                  {photos.map((ph) => (
+                    <img key={ph.id} src={`${UPLOADS_URL}/places/${ph.filename}`} alt=""
+                      className="photo-thumb" onClick={() => setLightbox(ph.filename)} />
+                  ))}
+                </div>
+              )}
+              {composePhotos.length > 0 && (
+                <div className="compose-photos-preview">
+                  {composePhotos.map((f, i) => (
+                    <div key={i} className="compose-photo-remove">
+                      <img src={URL.createObjectURL(f)} alt="" className="compose-photo-thumb" />
+                      <button onClick={() => setComposePhotos((p) => p.filter((_, j) => j !== i))}>✕</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                <button className="btn btn-primary btn-sm" onClick={handleAdd} disabled={saving}>
+                  {saving ? 'Отправка...' : 'Отправить'}
+                </button>
+                {composePhotos.length + photos.length < 5 && (
+                  <label className="btn btn-outline btn-sm upload-btn">
+                    + Фото {composePhotos.length + photos.length > 0 ? `(${composePhotos.length + photos.length}/5)` : ''}
+                    <input type="file" multiple accept="image/*" style={{ display: 'none' }}
+                      onChange={(e) => {
+                        const remaining = 5 - composePhotos.length - photos.length;
+                        setComposePhotos((p) => [...p, ...Array.from(e.target.files).slice(0, remaining)]);
+                        e.target.value = '';
+                      }}
+                    />
+                  </label>
+                )}
+              </div>
+            </div>
+          )}
+
+          {mode === 'edit' && (
+            <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+              <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={saving}>
+                {saving ? 'Сохраняем...' : 'Сохранить'}
+              </button>
+              <button className="btn btn-outline btn-sm" onClick={() => setMode('view')}>Отмена</button>
+            </div>
+          )}
+
+          {mode === 'view' && (
+            <>
+              {photos.length > 0 && (
+                <div className="photos-grid" style={{ marginTop: 8 }}>
+                  {photos.map((ph) => (
+                    <img key={ph.id} src={`${UPLOADS_URL}/places/${ph.filename}`} alt=""
+                      className="photo-thumb" onClick={() => setLightbox(ph.filename)} />
+                  ))}
+                </div>
+              )}
+              <label className="btn btn-outline btn-sm upload-btn" style={{ marginTop: 8, display: 'inline-flex' }}>
+                {uploading ? 'Загрузка...' : '+ Фото'}
+                <input type="file" multiple accept="image/*" onChange={handleUpload} style={{ display: 'none' }} disabled={uploading} />
+              </label>
+            </>
+          )}
+        </>
+      )}
+
+      {/* ── OTHER PEOPLE: photos first, then text below ── */}
+      {!isOwn && mode === 'view' && (
+        <>
           {photos.length > 0 && (
             <div className="photos-grid" style={{ marginTop: 8 }}>
               {photos.map((ph) => (
@@ -206,74 +269,8 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
               ))}
             </div>
           )}
-          {/* New local photo previews — shown inline before submitting */}
-          {composePhotos.length > 0 && (
-            <div className="compose-photos-preview">
-              {composePhotos.map((f, i) => (
-                <div key={i} className="compose-photo-remove">
-                  <img src={URL.createObjectURL(f)} alt="" className="compose-photo-thumb" />
-                  <button onClick={() => setComposePhotos((p) => p.filter((_, j) => j !== i))}>✕</button>
-                </div>
-              ))}
-            </div>
-          )}
-          <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
-            <button className="btn btn-primary btn-sm" onClick={handleAdd} disabled={saving}>
-              {saving ? 'Отправка...' : 'Отправить'}
-            </button>
-            {composePhotos.length + photos.length < 5 && (
-              <label className="btn btn-outline btn-sm upload-btn">
-                + Фото {composePhotos.length + photos.length > 0 ? `(${composePhotos.length + photos.length}/5)` : ''}
-                <input
-                  type="file" multiple accept="image/*" style={{ display: 'none' }}
-                  onChange={(e) => {
-                    const remaining = 5 - composePhotos.length - photos.length;
-                    setComposePhotos((p) => [...p, ...Array.from(e.target.files).slice(0, remaining)]);
-                    e.target.value = '';
-                  }}
-                />
-              </label>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* EDIT mode: editing existing review */}
-      {mode === 'edit' && (
-        <div className="contribution-edit">
-          <textarea
-            className="form-input"
-            value={editText}
-            onChange={(e) => setEditText(e.target.value)}
-            rows={3}
-            style={{ marginTop: 8 }}
-          />
-          <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-            <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={saving}>
-              {saving ? 'Сохраняем...' : 'Сохранить'}
-            </button>
-            <button className="btn btn-outline btn-sm" onClick={() => setMode('view')}>Отмена</button>
-          </div>
-        </div>
-      )}
-
-      {/* VIEW mode */}
-      {mode === 'view' && (
-        <>
-          {review?.text && <p className="review-text">{review.text}</p>}
-          {photos.length > 0 && (
-            <div className="photos-grid" style={{ marginTop: review?.text ? 6 : 8 }}>
-              {photos.map((ph) => (
-                <img key={ph.id} src={`${UPLOADS_URL}/places/${ph.filename}`} alt=""
-                  className="photo-thumb" onClick={() => setLightbox(ph.filename)} />
-              ))}
-            </div>
-          )}
-          {isOwn && (
-            <label className="btn btn-outline btn-sm upload-btn" style={{ marginTop: 8, display: 'inline-flex' }}>
-              {uploading ? 'Загрузка...' : '+ Фото'}
-              <input type="file" multiple accept="image/*" onChange={handleUpload} style={{ display: 'none' }} disabled={uploading} />
-            </label>
+          {review?.text && (
+            <p className="review-text" style={{ marginTop: photos.length ? 6 : 0 }}>{review.text}</p>
           )}
         </>
       )}
