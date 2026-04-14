@@ -82,7 +82,6 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
   const [editRating, setEditRating] = useState(review?.rating || 5);
   const [composePhotos, setComposePhotos] = useState([]); // local files, not yet uploaded
   const [saving, setSaving]         = useState(false);
-  const [uploading, setUploading]   = useState(false);
   const [deleting, setDeleting]     = useState(false);
   const [lightbox, setLightbox]     = useState(null);
 
@@ -134,23 +133,6 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
       alert('Не удалось удалить отзыв');
     } finally {
       setDeleting(false);
-    }
-  };
-
-  const handleUpload = async (e) => {
-    const files = Array.from(e.target.files);
-    if (!files.length) return;
-    setUploading(true);
-    const fd = new FormData();
-    files.forEach((f) => fd.append('photos', f));
-    try {
-      await api.post(`/places/${placeId}/photos`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-      await onRefresh();
-    } catch {
-      alert('Не удалось загрузить фото');
-    } finally {
-      setUploading(false);
-      e.target.value = '';
     }
   };
 
@@ -249,10 +231,6 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
                   ))}
                 </div>
               )}
-              <label className="btn btn-outline btn-sm upload-btn" style={{ marginTop: 8, display: 'inline-flex' }}>
-                {uploading ? 'Загрузка...' : '+ Фото'}
-                <input type="file" multiple accept="image/*" onChange={handleUpload} style={{ display: 'none' }} disabled={uploading} />
-              </label>
             </>
           )}
         </>
@@ -487,16 +465,12 @@ export default function PlacePanel({ place: initialPlace, onClose, onDelete, onR
         </div>
       </div>
 
-      {/* Meta */}
-      <div className="panel-meta">
-        <button className="user-link" onClick={() => onUserClick(place.user_id)}>
-          <Avatar user={{ username: place.username, avatar: place.avatar }} size="xs" />
-          <span>{place.username}</span>
-        </button>
-        {avgRating && (
+      {/* Meta: rating only, no author row */}
+      {avgRating && (
+        <div className="panel-meta">
           <div className="rating-chip">★ {avgRating}<span className="rating-count">({place.review_count})</span></div>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="panel-body">
 
@@ -540,9 +514,6 @@ export default function PlacePanel({ place: initialPlace, onClose, onDelete, onR
                 </a>
               )}
               {place.hashtags && <p className="place-hashtags">{place.hashtags}</p>}
-              <p className="text-xs text-muted" style={{ marginTop: '0.75rem' }}>
-                Добавлено {new Date(place.created_at).toLocaleDateString('ru-RU')}
-              </p>
             </>
           )}
         </div>
@@ -551,22 +522,17 @@ export default function PlacePanel({ place: initialPlace, onClose, onDelete, onR
 
         {/* ── CONTRIBUTIONS ── */}
         <div className="panel-section">
-          <div className="panel-section-header">
-            <span className="panel-section-title">
-              Отзывы{contributors.filter(c => c.review || c.photos.length).length > 0
-                ? ` (${contributors.filter(c => c.review || c.photos.length).length})`
-                : ''}
-            </span>
-            {/* Featured toggle (owner only) — inline with section title */}
-            {isOwner && (
+          {/* Featured toggle (owner only) */}
+          {isOwner && (
+            <div className="panel-section-header">
               <button
                 className={`feature-toggle-btn feature-toggle-inline${featured ? ' active' : ''}`}
                 onClick={handleFeatureToggle}
               >
-                {featured ? <><span>✦</span> Особое</> : <><span>✦</span> Особое</>}
+                <span>✦</span> Особое
               </button>
-            )}
-          </div>
+            </div>
+          )}
 
           {!user && (
             <div className="alert-info">Войдите, чтобы оставить отзыв</div>
