@@ -175,6 +175,21 @@ router.post('/:id/photos', authMiddleware, upload.array('photos', 10), (req, res
   res.json({ added: req.files.length });
 });
 
+// Delete a single photo (uploader or place owner)
+router.delete('/:id/photos/:photoId', authMiddleware, (req, res) => {
+  const db = getDB();
+  const photo = db.prepare('SELECT pp.*, p.user_id as place_owner FROM place_photos pp JOIN places p ON pp.place_id = p.id WHERE pp.id = ?').get(req.params.photoId);
+  if (!photo) return res.status(404).json({ error: 'Photo not found' });
+  if (photo.user_id !== req.user.id && photo.place_owner !== req.user.id)
+    return res.status(403).json({ error: 'Forbidden' });
+
+  const base = process.env.DATA_DIR || path.join(__dirname, '../data');
+  const filePath = path.join(base, 'uploads/places', photo.filename);
+  try { fs.unlinkSync(filePath); } catch {}
+  db.prepare('DELETE FROM place_photos WHERE id = ?').run(req.params.photoId);
+  res.json({ deleted: true });
+});
+
 // Edit a place (owner only)
 router.put('/:id', authMiddleware, (req, res) => {
   const db = getDB();

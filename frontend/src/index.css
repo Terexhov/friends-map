@@ -708,6 +708,27 @@ textarea.form-input { resize: vertical; }
   position: relative;
   display: inline-block;
 }
+.photo-thumb-wrap {
+  position: relative;
+  display: inline-block;
+}
+.photo-delete-btn {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(0,0,0,.6);
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
 .compose-photo-remove button {
   position: absolute;
   top: -4px;

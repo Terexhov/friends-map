@@ -72,18 +72,16 @@ function Avatar({ user, size = 'xs', onClick }) {
   );
 }
 
-// Unified contribution card — handles add / view / edit states
 function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, placeId, placeCreatedAt }) {
   const { user } = useAuth();
 
-  // Determine initial mode: if own card with no review yet → 'add', otherwise 'view'
-  const [mode, setMode]             = useState(!review && isOwn ? 'add' : 'view');
-  const [editText, setEditText]     = useState(review?.text || '');
-  const [editRating, setEditRating] = useState(review?.rating || 5);
-  const [composePhotos, setComposePhotos] = useState([]); // local files, not yet uploaded
-  const [saving, setSaving]         = useState(false);
-  const [deleting, setDeleting]     = useState(false);
-  const [lightbox, setLightbox]     = useState(null);
+  const [mode, setMode]               = useState(!review && isOwn ? 'add' : 'view');
+  const [editText, setEditText]       = useState(review?.text || '');
+  const [editRating, setEditRating]   = useState(review?.rating || 5);
+  const [newPhotos, setNewPhotos]     = useState([]); // staged in add/edit
+  const [saving, setSaving]           = useState(false);
+  const [deleting, setDeleting]       = useState(false);
+  const [lightbox, setLightbox]       = useState(null);
 
   const cardUser = review
     ? { username: review.username, avatar: review.avatar, id: review.user_id }
@@ -91,16 +89,18 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
       ? { username: photos[0].username, avatar: photos[0].avatar, id: photos[0].user_id }
       : { username: user?.username, avatar: user?.avatar, id: user?.id };
 
+  const totalPhotos = photos.length + newPhotos.length;
+
   const handleAdd = async () => {
     setSaving(true);
     try {
       await api.post('/reviews', { place_id: placeId, rating: editRating, text: editText });
-      // upload photos together with the review submission
-      if (composePhotos.length) {
+      if (newPhotos.length) {
         const fd = new FormData();
-        composePhotos.forEach((f) => fd.append('photos', f));
+        newPhotos.forEach((f) => fd.append('photos', f));
         await api.post(`/places/${placeId}/photos`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       }
+      setNewPhotos([]);
       setMode('view');
       await onRefresh();
     } catch (err) {
@@ -114,6 +114,12 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
     setSaving(true);
     try {
       await api.put(`/reviews/${review.id}`, { rating: editRating, text: editText });
+      if (newPhotos.length) {
+        const fd = new FormData();
+        newPhotos.forEach((f) => fd.append('photos', f));
+        await api.post(`/places/${placeId}/photos`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      }
+      setNewPhotos([]);
       setMode('view');
       await onRefresh();
     } catch {
@@ -123,7 +129,16 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
     }
   };
 
-  const handleDelete = async () => {
+  const handleDeletePhoto = async (photoId) => {
+    try {
+      await api.delete(`/places/${placeId}/photos/${photoId}`);
+      await onRefresh();
+    } catch {
+      alert('Не удалось удалить фото');
+    }
+  };
+
+  const handleDeleteReview = async () => {
     if (!window.confirm('Удалить ваш отзыв?')) return;
     setDeleting(true);
     try {
@@ -139,12 +154,13 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
   const startEdit = () => {
     setEditText(review?.text || '');
     setEditRating(review?.rating || 5);
+    setNewPhotos([]);
     setMode('edit');
   };
 
   return (
     <div className={`contribution-card${isOwn ? ' own' : ''}`}>
-      {/* Header: avatar + name + (own add/edit: stars) + (own view: actions) */}
+      {/* Header: avatar + name + stars(edit/add) + actions(view) */}
       <div className="cc-header">
         <button className="cc-user" onClick={() => onUserClick(cardUser.id)}>
           <Avatar user={cardUser} size="sm" />
@@ -156,35 +172,26 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
         {isOwn && mode === 'view' && review && (
           <div className="cc-actions">
             <button className="btn-icon-sm" onClick={startEdit} title="Редактировать">✏️</button>
-            <button className="btn-icon-sm" onClick={handleDelete} disabled={deleting} title="Удалить">🗑️</button>
+            <button className="btn-icon-sm" onClick={handleDeleteReview} disabled={deleting} title="Удалить">🗑️</button>
           </div>
         )}
       </div>
 
-      {/* Stars + date below header */}
+      {/* Stars + date (view mode) */}
       {mode === 'view' && (review || isOwn) && (
         <div className="cc-meta">
           {review && <StarRating value={review.rating} readonly size="sm" />}
           <span className="cc-date">
             {review
               ? new Date(review.created_at).toLocaleDateString('ru-RU')
-              : placeCreatedAt
-                ? new Date(placeCreatedAt).toLocaleDateString('ru-RU')
-                : ''}
+              : placeCreatedAt ? new Date(placeCreatedAt).toLocaleDateString('ru-RU') : ''}
           </span>
         </div>
       )}
 
-      {/* ── ADD mode (own, no review yet) ── */}
+      {/* ADD mode: photos + submit (no text) */}
       {isOwn && mode === 'add' && (
         <div className="contribution-compose">
-          <textarea
-            className="form-input"
-            value={editText}
-            onChange={(e) => setEditText(e.target.value)}
-            rows={3}
-            placeholder="Ваш отзыв..."
-          />
           {photos.length > 0 && (
             <div className="photos-grid" style={{ marginTop: 8 }}>
               {photos.map((ph) => (
@@ -193,12 +200,12 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
               ))}
             </div>
           )}
-          {composePhotos.length > 0 && (
+          {newPhotos.length > 0 && (
             <div className="compose-photos-preview">
-              {composePhotos.map((f, i) => (
+              {newPhotos.map((f, i) => (
                 <div key={i} className="compose-photo-remove">
                   <img src={URL.createObjectURL(f)} alt="" className="compose-photo-thumb" />
-                  <button onClick={() => setComposePhotos((p) => p.filter((_, j) => j !== i))}>✕</button>
+                  <button onClick={() => setNewPhotos((p) => p.filter((_, j) => j !== i))}>✕</button>
                 </div>
               ))}
             </div>
@@ -207,13 +214,13 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
             <button className="btn btn-primary btn-sm" onClick={handleAdd} disabled={saving}>
               {saving ? 'Отправка...' : 'Отправить'}
             </button>
-            {composePhotos.length + photos.length < 5 && (
+            {totalPhotos < 5 && (
               <label className="btn btn-outline btn-sm upload-btn">
-                + Фото {composePhotos.length + photos.length > 0 ? `(${composePhotos.length + photos.length}/5)` : ''}
+                + Фото {totalPhotos > 0 ? `(${totalPhotos}/5)` : ''}
                 <input type="file" multiple accept="image/*" style={{ display: 'none' }}
                   onChange={(e) => {
-                    const remaining = 5 - composePhotos.length - photos.length;
-                    setComposePhotos((p) => [...p, ...Array.from(e.target.files).slice(0, remaining)]);
+                    const remaining = 5 - totalPhotos;
+                    setNewPhotos((p) => [...p, ...Array.from(e.target.files).slice(0, remaining)]);
                     e.target.value = '';
                   }}
                 />
@@ -223,7 +230,7 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
         </div>
       )}
 
-      {/* ── EDIT mode (own, editing existing review) ── */}
+      {/* EDIT mode: text + photos together */}
       {isOwn && mode === 'edit' && (
         <div className="contribution-edit">
           <textarea
@@ -232,17 +239,53 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
             onChange={(e) => setEditText(e.target.value)}
             rows={3}
             style={{ marginTop: 8 }}
+            placeholder="Ваш отзыв..."
           />
-          <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+          {/* Existing photos with delete */}
+          {photos.length > 0 && (
+            <div className="photos-grid" style={{ marginTop: 8 }}>
+              {photos.map((ph) => (
+                <div key={ph.id} className="photo-thumb-wrap">
+                  <img src={`${UPLOADS_URL}/places/${ph.filename}`} alt=""
+                    className="photo-thumb" onClick={() => setLightbox(ph.filename)} />
+                  <button className="photo-delete-btn" onClick={() => handleDeletePhoto(ph.id)} title="Удалить фото">✕</button>
+                </div>
+              ))}
+            </div>
+          )}
+          {/* New staged photos */}
+          {newPhotos.length > 0 && (
+            <div className="compose-photos-preview">
+              {newPhotos.map((f, i) => (
+                <div key={i} className="compose-photo-remove">
+                  <img src={URL.createObjectURL(f)} alt="" className="compose-photo-thumb" />
+                  <button onClick={() => setNewPhotos((p) => p.filter((_, j) => j !== i))}>✕</button>
+                </div>
+              ))}
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
             <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={saving}>
               {saving ? 'Сохраняем...' : 'Сохранить'}
             </button>
-            <button className="btn btn-outline btn-sm" onClick={() => setMode('view')}>Отмена</button>
+            <button className="btn btn-outline btn-sm" onClick={() => { setNewPhotos([]); setMode('view'); }}>Отмена</button>
+            {photos.length + newPhotos.length < 5 && (
+              <label className="btn btn-outline btn-sm upload-btn">
+                + Фото {photos.length + newPhotos.length > 0 ? `(${photos.length + newPhotos.length}/5)` : ''}
+                <input type="file" multiple accept="image/*" style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const remaining = 5 - photos.length - newPhotos.length;
+                    setNewPhotos((p) => [...p, ...Array.from(e.target.files).slice(0, remaining)]);
+                    e.target.value = '';
+                  }}
+                />
+              </label>
+            )}
           </div>
         </div>
       )}
 
-      {/* ── VIEW mode: same layout for own and others ── photos → text ── */}
+      {/* VIEW mode: photos → text */}
       {mode === 'view' && (
         <>
           {photos.length > 0 && (
@@ -268,7 +311,6 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
   );
 }
 
-// Inline edit form for place info (owner)
 function EditPlaceForm({ place, onSave, onCancel }) {
   const [name, setName]           = useState(place.name || '');
   const [description, setDesc]    = useState(place.description || '');
@@ -368,23 +410,21 @@ function EditPlaceForm({ place, onSave, onCancel }) {
 
 export default function PlacePanel({ place: initialPlace, onClose, onDelete, onRefresh, onUserClick }) {
   const { user } = useAuth();
-  const [place, setPlace]       = useState(initialPlace);
-  const [liked, setLiked]       = useState(!!place.user_liked);
+  const [place, setPlace]           = useState(initialPlace);
+  const [liked, setLiked]           = useState(!!place.user_liked);
   const [likesCount, setLikesCount] = useState(place.likes_count || 0);
-  const [featured, setFeatured] = useState(!!place.is_featured);
-  const [editing, setEditing]   = useState(false);
+  const [featured, setFeatured]     = useState(!!place.is_featured);
+  const [editing, setEditing]       = useState(false);
 
   const isOwner = user && place.user_id === user.id;
   const avgRating = place.review_count > 0 ? Number(place.avg_rating).toFixed(1) : null;
 
-  // Group photos by user_id
   const photosByUser = {};
   (place.photos || []).forEach((ph) => {
     if (!photosByUser[ph.user_id]) photosByUser[ph.user_id] = [];
     photosByUser[ph.user_id].push(ph);
   });
 
-  // Build contributor list: union of reviewers + photo uploaders + current user (always shown)
   const allUserIds = new Set([
     ...(place.reviews || []).map((r) => r.user_id),
     ...Object.keys(photosByUser).map(Number),
@@ -395,7 +435,6 @@ export default function PlacePanel({ place: initialPlace, onClose, onDelete, onR
     review: (place.reviews || []).find((r) => r.user_id === uid) || null,
     photos: photosByUser[uid] || [],
   }));
-  // Own card always first
   contributors.sort((a, b) => (b.uid === user?.id ? 1 : 0) - (a.uid === user?.id ? 1 : 0));
 
   const handleLikePlace = async () => {
@@ -441,7 +480,6 @@ export default function PlacePanel({ place: initialPlace, onClose, onDelete, onR
 
   return (
     <div className={`place-panel${featured ? ' place-panel--featured' : ''}`}>
-      {/* Featured banner */}
       {featured && (
         <div className="featured-banner">
           <span className="featured-banner-icon">✦</span>
@@ -450,13 +488,21 @@ export default function PlacePanel({ place: initialPlace, onClose, onDelete, onR
         </div>
       )}
 
-      {/* Header */}
       <div className="panel-header">
         <div className="panel-header-main">
           <h2 className="panel-title">{place.name}</h2>
           <span className="panel-category">{CATEGORY_LABELS[place.category] || place.category}</span>
         </div>
         <div className="panel-header-actions">
+          {isOwner && (
+            <button
+              className={`feature-toggle-btn${featured ? ' active' : ''}`}
+              onClick={handleFeatureToggle}
+              title={featured ? 'Убрать из особых' : 'Сделать особым'}
+            >
+              ✦
+            </button>
+          )}
           {user && (
             <button
               className={`like-place-btn${liked ? ' liked' : ''}`}
@@ -471,7 +517,6 @@ export default function PlacePanel({ place: initialPlace, onClose, onDelete, onR
         </div>
       </div>
 
-      {/* Meta: rating only, no author row */}
       {avgRating && (
         <div className="panel-meta">
           <div className="rating-chip">★ {avgRating}<span className="rating-count">({place.review_count})</span></div>
@@ -479,11 +524,9 @@ export default function PlacePanel({ place: initialPlace, onClose, onDelete, onR
       )}
 
       <div className="panel-body">
-
-        {/* ── PLACE INFO ── */}
         <div className="panel-section">
           <div className="panel-section-header">
-            <span className="panel-section-title">О месте</span>
+            <span className="panel-section-title">Об отзыве</span>
             {isOwner && !editing && (
               <button className="btn-icon-sm" onClick={() => setEditing(true)} title="Редактировать">✏️</button>
             )}
@@ -526,20 +569,7 @@ export default function PlacePanel({ place: initialPlace, onClose, onDelete, onR
 
         <div className="panel-divider" />
 
-        {/* ── CONTRIBUTIONS ── */}
         <div className="panel-section">
-          {/* Featured toggle (owner only) */}
-          {isOwner && (
-            <div className="panel-section-header">
-              <button
-                className={`feature-toggle-btn feature-toggle-inline${featured ? ' active' : ''}`}
-                onClick={handleFeatureToggle}
-              >
-                <span>✦</span> Особое
-              </button>
-            </div>
-          )}
-
           {!user && (
             <div className="alert-info">Войдите, чтобы оставить отзыв</div>
           )}
