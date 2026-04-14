@@ -1,7 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import api, { UPLOADS_URL } from '../api';
-
 
 const CATEGORY_LABELS = {
   cafe:        '☕ Кафе',
@@ -61,9 +60,8 @@ const PRICE_LEVELS = [
   { value: 4, label: '₽₽₽₽ Очень дорого' },
 ];
 
-
-function UserContribution({ review, photos, isOwn, onRefresh, placeId }) {
-  const [mode, setMode]             = useState('view');
+// Contribution card — view and edit modes, no internal edit toggle
+function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMode, onEditClose }) {
   const [editText, setEditText]     = useState(review?.text || '');
   const [editRating, setEditRating] = useState(review?.rating || 5);
   const [newPhotos, setNewPhotos]   = useState([]);
@@ -71,18 +69,33 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId }) {
   const [deleting, setDeleting]     = useState(false);
   const [lightbox, setLightbox]     = useState(null);
 
+  // Sync edit fields whenever edit mode is entered
+  useEffect(() => {
+    if (isEditMode) {
+      setEditText(review?.text || '');
+      setEditRating(review?.rating || 5);
+      setNewPhotos([]);
+    }
+  }, [isEditMode]);
+
+  if (!isEditMode && !review && photos.length === 0) return null;
+
   const handleSave = async () => {
     setSaving(true);
     try {
-      await api.put(`/reviews/${review.id}`, { rating: editRating, text: editText });
+      if (review) {
+        await api.put(`/reviews/${review.id}`, { rating: editRating, text: editText });
+      } else if (editText.trim()) {
+        await api.post('/reviews', { place_id: placeId, rating: editRating, text: editText });
+      }
       if (newPhotos.length) {
         const fd = new FormData();
         newPhotos.forEach((f) => fd.append('photos', f));
         await api.post(`/places/${placeId}/photos`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       }
       setNewPhotos([]);
-      setMode('view');
       await onRefresh();
+      onEditClose?.();
     } catch {
       alert('Не удалось сохранить');
     } finally {
@@ -105,6 +118,7 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId }) {
     try {
       await api.delete(`/reviews/${review.id}`);
       await onRefresh();
+      onEditClose?.();
     } catch {
       alert('Не удалось удалить отзыв');
     } finally {
@@ -112,38 +126,18 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId }) {
     }
   };
 
-  const startEdit = () => {
-    setEditText(review?.text || '');
-    setEditRating(review?.rating || 5);
-    setNewPhotos([]);
-    setMode('edit');
-  };
-
-  // Don't render card if no content and not in edit mode
-  if (mode === 'view' && !review && photos.length === 0) return null;
-
   return (
     <div className={`contribution-card${isOwn ? ' own' : ''}`}>
-      {/* Edit/delete actions — own card, view mode, has any content */}
-      {isOwn && mode === 'view' && (review || photos.length > 0) && (
-        <div className="cc-actions" style={{ justifyContent: 'flex-end', marginBottom: 4 }}>
-          <button className="btn-icon-sm" onClick={startEdit} title="Редактировать">✏️</button>
-          {review && <button className="btn-icon-sm" onClick={handleDeleteReview} disabled={deleting} title="Удалить">🗑️</button>}
-        </div>
-      )}
-
-      {/* EDIT mode: text + photos together */}
-      {isOwn && mode === 'edit' && (
+      {/* EDIT mode */}
+      {isOwn && isEditMode && (
         <div className="contribution-edit">
           <textarea
             className="form-input"
             value={editText}
             onChange={(e) => setEditText(e.target.value)}
             rows={3}
-            style={{ marginTop: 8 }}
             placeholder="Ваш отзыв..."
           />
-          {/* Existing photos with delete */}
           {photos.length > 0 && (
             <div className="photos-grid" style={{ marginTop: 8 }}>
               {photos.map((ph) => (
@@ -155,7 +149,6 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId }) {
               ))}
             </div>
           )}
-          {/* New staged photos */}
           {newPhotos.length > 0 && (
             <div className="compose-photos-preview">
               {newPhotos.map((f, i) => (
@@ -170,7 +163,7 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId }) {
             <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={saving}>
               {saving ? 'Сохраняем...' : 'Сохранить'}
             </button>
-            <button className="btn btn-outline btn-sm" onClick={() => { setNewPhotos([]); setMode('view'); }}>Отмена</button>
+            <button className="btn btn-outline btn-sm" onClick={() => { setNewPhotos([]); onEditClose?.(); }}>Отмена</button>
             {photos.length + newPhotos.length < 5 && (
               <label className="btn btn-outline btn-sm upload-btn">
                 + Фото {photos.length + newPhotos.length > 0 ? `(${photos.length + newPhotos.length}/5)` : ''}
@@ -183,12 +176,18 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId }) {
                 />
               </label>
             )}
+            {review && (
+              <button className="btn btn-outline btn-sm" style={{ color: 'var(--danger)', borderColor: 'var(--danger)', marginLeft: 'auto' }}
+                onClick={handleDeleteReview} disabled={deleting}>
+                Удалить отзыв
+              </button>
+            )}
           </div>
         </div>
       )}
 
-      {/* VIEW mode: photos → text */}
-      {mode === 'view' && (
+      {/* VIEW mode */}
+      {(!isOwn || !isEditMode) && (
         <>
           {photos.length > 0 && (
             <div className="photos-grid" style={{ marginTop: 8 }}>
@@ -390,31 +389,33 @@ export default function PlacePanel({ place: initialPlace, onClose, onDelete, onR
         </div>
       )}
 
+      {/* Header: title row + actions row */}
       <div className="panel-header">
-        <div className="panel-header-main">
+        <div className="panel-header-top">
           <h2 className="panel-title">{place.name}</h2>
-          <span className="panel-category">{CATEGORY_LABELS[place.category] || place.category}</span>
-        </div>
-        <div className="panel-header-actions">
-          {isOwner && (
-            <button
-              className={`feature-toggle-btn${featured ? ' active' : ''}`}
-              onClick={handleFeatureToggle}
-            >
-              <span>✦</span> Моё особое место
-            </button>
-          )}
-          {user && (
-            <button
-              className={`btn btn-sm like-place-btn${liked ? ' liked' : ''}`}
-              onClick={handleLikePlace}
-              title={liked ? 'Убрать из избранного' : 'В избранное'}
-            >
-              {liked ? '❤️' : '🤍'}{likesCount > 0 ? ` ${likesCount}` : ''}
-            </button>
-          )}
-          {isOwner && <button className="btn btn-danger btn-sm" onClick={handleDeletePlace}>Удалить</button>}
           <button className="btn-icon" onClick={onClose}>✕</button>
+        </div>
+        <div className="panel-header-bottom">
+          <span className="panel-category">{CATEGORY_LABELS[place.category] || place.category}</span>
+          <div className="panel-header-actions">
+            {isOwner && (
+              <button
+                className={`feature-toggle-btn${featured ? ' active' : ''}`}
+                onClick={handleFeatureToggle}
+              >
+                <span>✦</span> Моё особое место
+              </button>
+            )}
+            {user && (
+              <button
+                className={`btn btn-sm like-place-btn${liked ? ' liked' : ''}`}
+                onClick={handleLikePlace}
+              >
+                {liked ? '❤️' : '🤍'}{likesCount > 0 ? ` ${likesCount}` : ''}
+              </button>
+            )}
+            {isOwner && <button className="btn btn-danger btn-sm" onClick={handleDeletePlace}>Удалить</button>}
+          </div>
         </div>
       </div>
 
@@ -428,6 +429,7 @@ export default function PlacePanel({ place: initialPlace, onClose, onDelete, onR
         <div className="panel-section">
           <div className="panel-section-header">
             <span className="panel-section-title">Об отзыве</span>
+            {/* ONE edit button for owner — edits place fields + own review/photos */}
             {isOwner && !editing && (
               <button className="btn-icon-sm" onClick={() => setEditing(true)} title="Редактировать">✏️</button>
             )}
@@ -481,6 +483,8 @@ export default function PlacePanel({ place: initialPlace, onClose, onDelete, onR
               isOwn={user?.id === uid}
               onRefresh={onRefresh}
               placeId={place.id}
+              isEditMode={editing && user?.id === uid}
+              onEditClose={() => setEditing(false)}
             />
           ))}
         </div>
