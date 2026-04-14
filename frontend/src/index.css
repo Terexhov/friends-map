@@ -402,10 +402,8 @@ textarea.form-input { resize: vertical; }
 /* ─── Contribution card (Google Maps style) ──── */
 .contribution-card {
   padding: .9rem 0;
-  border-bottom: 1px solid var(--border);
   background: transparent;
 }
-.contribution-card:last-child { border-bottom: none; }
 .contribution-card.own { background: transparent; }
 
 /* Row 1: avatar + name + stars(compose) + actions */

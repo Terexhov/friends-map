@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import api, { UPLOADS_URL } from '../api';
-import StarRating from './StarRating';
+
 
 const CATEGORY_LABELS = {
   cafe:        '☕ Кафе',
@@ -61,54 +61,15 @@ const PRICE_LEVELS = [
   { value: 4, label: '₽₽₽₽ Очень дорого' },
 ];
 
-function Avatar({ user, size = 'xs', onClick }) {
-  const cls = `avatar avatar-${size}${onClick ? ' clickable' : ''}`;
-  if (user.avatar)
-    return <img src={`${UPLOADS_URL}/avatars/${user.avatar}`} alt={user.username} className={cls} onClick={onClick} />;
-  return (
-    <div className={`${cls} avatar-placeholder`} onClick={onClick}>
-      {user.username[0].toUpperCase()}
-    </div>
-  );
-}
 
-function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, placeId, placeCreatedAt }) {
-  const { user } = useAuth();
-
-  const [mode, setMode]               = useState(!review && isOwn ? 'add' : 'view');
-  const [editText, setEditText]       = useState(review?.text || '');
-  const [editRating, setEditRating]   = useState(review?.rating || 5);
-  const [newPhotos, setNewPhotos]     = useState([]); // staged in add/edit
-  const [saving, setSaving]           = useState(false);
-  const [deleting, setDeleting]       = useState(false);
-  const [lightbox, setLightbox]       = useState(null);
-
-  const cardUser = review
-    ? { username: review.username, avatar: review.avatar, id: review.user_id }
-    : photos[0]
-      ? { username: photos[0].username, avatar: photos[0].avatar, id: photos[0].user_id }
-      : { username: user?.username, avatar: user?.avatar, id: user?.id };
-
-  const totalPhotos = photos.length + newPhotos.length;
-
-  const handleAdd = async () => {
-    setSaving(true);
-    try {
-      await api.post('/reviews', { place_id: placeId, rating: editRating, text: editText });
-      if (newPhotos.length) {
-        const fd = new FormData();
-        newPhotos.forEach((f) => fd.append('photos', f));
-        await api.post(`/places/${placeId}/photos`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-      }
-      setNewPhotos([]);
-      setMode('view');
-      await onRefresh();
-    } catch (err) {
-      alert(err.response?.data?.error || 'Не удалось добавить отзыв');
-    } finally {
-      setSaving(false);
-    }
-  };
+function UserContribution({ review, photos, isOwn, onRefresh, placeId }) {
+  const [mode, setMode]             = useState('view');
+  const [editText, setEditText]     = useState(review?.text || '');
+  const [editRating, setEditRating] = useState(review?.rating || 5);
+  const [newPhotos, setNewPhotos]   = useState([]);
+  const [saving, setSaving]         = useState(false);
+  const [deleting, setDeleting]     = useState(false);
+  const [lightbox, setLightbox]     = useState(null);
 
   const handleSave = async () => {
     setSaving(true);
@@ -158,75 +119,16 @@ function UserContribution({ review, photos, isOwn, onUserClick, onRefresh, place
     setMode('edit');
   };
 
+  // Don't render card if no content and not in edit mode
+  if (mode === 'view' && !review && photos.length === 0) return null;
+
   return (
     <div className={`contribution-card${isOwn ? ' own' : ''}`}>
-      {/* Header: avatar + name + stars(edit/add) + actions(view) */}
-      <div className="cc-header">
-        <button className="cc-user" onClick={() => onUserClick(cardUser.id)}>
-          <Avatar user={cardUser} size="sm" />
-          <span className="cc-username">{cardUser.username}</span>
-        </button>
-        {isOwn && (mode === 'add' || mode === 'edit') && (
-          <StarRating value={editRating} onChange={setEditRating} size="sm" />
-        )}
-        {isOwn && mode === 'view' && review && (
-          <div className="cc-actions">
-            <button className="btn-icon-sm" onClick={startEdit} title="Редактировать">✏️</button>
-            <button className="btn-icon-sm" onClick={handleDeleteReview} disabled={deleting} title="Удалить">🗑️</button>
-          </div>
-        )}
-      </div>
-
-      {/* Stars + date (view mode) */}
-      {mode === 'view' && (review || isOwn) && (
-        <div className="cc-meta">
-          {review && <StarRating value={review.rating} readonly size="sm" />}
-          <span className="cc-date">
-            {review
-              ? new Date(review.created_at).toLocaleDateString('ru-RU')
-              : placeCreatedAt ? new Date(placeCreatedAt).toLocaleDateString('ru-RU') : ''}
-          </span>
-        </div>
-      )}
-
-      {/* ADD mode: photos + submit (no text) */}
-      {isOwn && mode === 'add' && (
-        <div className="contribution-compose">
-          {photos.length > 0 && (
-            <div className="photos-grid" style={{ marginTop: 8 }}>
-              {photos.map((ph) => (
-                <img key={ph.id} src={`${UPLOADS_URL}/places/${ph.filename}`} alt=""
-                  className="photo-thumb" onClick={() => setLightbox(ph.filename)} />
-              ))}
-            </div>
-          )}
-          {newPhotos.length > 0 && (
-            <div className="compose-photos-preview">
-              {newPhotos.map((f, i) => (
-                <div key={i} className="compose-photo-remove">
-                  <img src={URL.createObjectURL(f)} alt="" className="compose-photo-thumb" />
-                  <button onClick={() => setNewPhotos((p) => p.filter((_, j) => j !== i))}>✕</button>
-                </div>
-              ))}
-            </div>
-          )}
-          <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
-            <button className="btn btn-primary btn-sm" onClick={handleAdd} disabled={saving}>
-              {saving ? 'Отправка...' : 'Отправить'}
-            </button>
-            {totalPhotos < 5 && (
-              <label className="btn btn-outline btn-sm upload-btn">
-                + Фото {totalPhotos > 0 ? `(${totalPhotos}/5)` : ''}
-                <input type="file" multiple accept="image/*" style={{ display: 'none' }}
-                  onChange={(e) => {
-                    const remaining = 5 - totalPhotos;
-                    setNewPhotos((p) => [...p, ...Array.from(e.target.files).slice(0, remaining)]);
-                    e.target.value = '';
-                  }}
-                />
-              </label>
-            )}
-          </div>
+      {/* Edit/delete actions — only for own card in view mode */}
+      {isOwn && mode === 'view' && review && (
+        <div className="cc-actions" style={{ justifyContent: 'flex-end', marginBottom: 4 }}>
+          <button className="btn-icon-sm" onClick={startEdit} title="Редактировать">✏️</button>
+          <button className="btn-icon-sm" onClick={handleDeleteReview} disabled={deleting} title="Удалить">🗑️</button>
         </div>
       )}
 
@@ -408,7 +310,7 @@ function EditPlaceForm({ place, onSave, onCancel }) {
   );
 }
 
-export default function PlacePanel({ place: initialPlace, onClose, onDelete, onRefresh, onUserClick }) {
+export default function PlacePanel({ place: initialPlace, onClose, onDelete, onRefresh }) {
   const { user } = useAuth();
   const [place, setPlace]           = useState(initialPlace);
   const [liked, setLiked]           = useState(!!place.user_liked);
@@ -580,10 +482,8 @@ export default function PlacePanel({ place: initialPlace, onClose, onDelete, onR
               review={review}
               photos={photos}
               isOwn={user?.id === uid}
-              onUserClick={onUserClick}
               onRefresh={onRefresh}
               placeId={place.id}
-              placeCreatedAt={place.created_at}
             />
           ))}
         </div>
