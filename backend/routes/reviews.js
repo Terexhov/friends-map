@@ -93,4 +93,50 @@ router.delete('/:id', authMiddleware, (req, res) => {
   res.json({ success: true });
 });
 
+// Get comments for a review
+router.get('/:id/comments', (req, res) => {
+  const db = getDB();
+  const comments = db.prepare(`
+    SELECT rc.*, u.username, u.avatar
+    FROM review_comments rc
+    JOIN users u ON rc.user_id = u.id
+    WHERE rc.review_id = ?
+    ORDER BY rc.created_at ASC
+  `).all(req.params.id);
+  res.json(comments);
+});
+
+// Add a comment to a review
+router.post('/:id/comments', authMiddleware, (req, res) => {
+  const { text } = req.body;
+  if (!text?.trim()) return res.status(400).json({ error: 'Text is required' });
+
+  const db = getDB();
+  const review = db.prepare('SELECT id FROM reviews WHERE id = ?').get(req.params.id);
+  if (!review) return res.status(404).json({ error: 'Review not found' });
+
+  const result = db.prepare('INSERT INTO review_comments (review_id, user_id, text) VALUES (?, ?, ?)')
+    .run(req.params.id, req.user.id, text.trim());
+
+  const comment = db.prepare(`
+    SELECT rc.*, u.username, u.avatar
+    FROM review_comments rc
+    JOIN users u ON rc.user_id = u.id
+    WHERE rc.id = ?
+  `).get(result.lastInsertRowid);
+
+  res.json(comment);
+});
+
+// Delete own comment
+router.delete('/:id/comments/:commentId', authMiddleware, (req, res) => {
+  const db = getDB();
+  const comment = db.prepare('SELECT * FROM review_comments WHERE id = ?').get(req.params.commentId);
+  if (!comment) return res.status(404).json({ error: 'Comment not found' });
+  if (comment.user_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
+
+  db.prepare('DELETE FROM review_comments WHERE id = ?').run(req.params.commentId);
+  res.json({ success: true });
+});
+
 module.exports = router;

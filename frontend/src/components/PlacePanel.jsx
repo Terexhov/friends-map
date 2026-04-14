@@ -62,12 +62,24 @@ const PRICE_LEVELS = [
 
 // Contribution card — view and edit modes, no internal edit toggle
 function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMode, onEditClose }) {
-  const [editText, setEditText]     = useState(review?.text || '');
-  const [editRating, setEditRating] = useState(review?.rating || 5);
-  const [newPhotos, setNewPhotos]   = useState([]);
-  const [saving, setSaving]         = useState(false);
-  const [deleting, setDeleting]     = useState(false);
-  const [lightbox, setLightbox]     = useState(null);
+  const { user } = useAuth();
+  const [editText, setEditText]         = useState(review?.text || '');
+  const [editRating, setEditRating]     = useState(review?.rating || 5);
+  const [newPhotos, setNewPhotos]       = useState([]);
+  const [saving, setSaving]             = useState(false);
+  const [deleting, setDeleting]         = useState(false);
+  const [lightbox, setLightbox]         = useState(null);
+  const [comments, setComments]         = useState([]);
+  const [commentText, setCommentText]   = useState('');
+  const [postingComment, setPostingComment] = useState(false);
+
+  useEffect(() => {
+    if (review?.id) {
+      api.get(`/reviews/${review.id}/comments`)
+        .then((res) => setComments(res.data))
+        .catch(() => {});
+    }
+  }, [review?.id]);
 
   // Sync edit fields whenever edit mode is entered
   useEffect(() => {
@@ -77,6 +89,29 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMod
       setNewPhotos([]);
     }
   }, [isEditMode]);
+
+  const handleAddComment = async () => {
+    if (!commentText.trim()) return;
+    setPostingComment(true);
+    try {
+      const res = await api.post(`/reviews/${review.id}/comments`, { text: commentText });
+      setComments((prev) => [...prev, res.data]);
+      setCommentText('');
+    } catch {
+      alert('Не удалось добавить комментарий');
+    } finally {
+      setPostingComment(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    try {
+      await api.delete(`/reviews/${review.id}/comments/${commentId}`);
+      setComments((prev) => prev.filter((c) => c.id !== commentId));
+    } catch {
+      alert('Не удалось удалить комментарий');
+    }
+  };
 
   if (!isEditMode && !review && photos.length === 0) return null;
 
@@ -189,8 +224,16 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMod
       {/* VIEW mode */}
       {(!isOwn || !isEditMode) && (
         <>
+          {/* Author header */}
+          {review && (
+            <div className="cc-review-header">
+              <span className="cc-review-author">{review.username}</span>
+              {isOwn && <span className="cc-review-own-label">вы</span>}
+            </div>
+          )}
+
           {photos.length > 0 && (
-            <div className="photos-grid" style={{ marginTop: 8 }}>
+            <div className="photos-grid" style={{ marginTop: 4 }}>
               {photos.map((ph) => (
                 <img key={ph.id} src={`${UPLOADS_URL}/places/${ph.filename}`} alt=""
                   className="photo-thumb" onClick={() => setLightbox(ph.filename)} />
@@ -199,6 +242,35 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMod
           )}
           {review?.text && (
             <p className="review-text" style={{ marginTop: photos.length ? 6 : 0 }}>{review.text}</p>
+          )}
+
+          {/* Comments — shown for any review, input only for non-authors */}
+          {review && (
+            <div className="review-comments">
+              {comments.map((c) => (
+                <div key={c.id} className="review-comment">
+                  <span className="review-comment-author">{c.username}</span>
+                  <span className="review-comment-text">{c.text}</span>
+                  {user?.id === c.user_id && (
+                    <button className="review-comment-delete" onClick={() => handleDeleteComment(c.id)} title="Удалить">✕</button>
+                  )}
+                </div>
+              ))}
+              {user && user.id !== review.user_id && (
+                <div className="review-comment-input">
+                  <input
+                    type="text"
+                    placeholder="Написать комментарий..."
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && !postingComment && handleAddComment()}
+                  />
+                  <button onClick={handleAddComment} disabled={postingComment || !commentText.trim()}>
+                    {postingComment ? '...' : 'Отправить'}
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </>
       )}
