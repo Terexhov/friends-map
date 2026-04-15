@@ -60,6 +60,43 @@ const PRICE_LEVELS = [
   { value: 4, label: '₽₽₽₽ Очень дорого' },
 ];
 
+function PhotoCarousel({ photos, onOpenLightbox }) {
+  const [idx, setIdx] = useState(0);
+  if (!photos.length) return null;
+  const prev = () => setIdx((i) => (i - 1 + photos.length) % photos.length);
+  const next = () => setIdx((i) => (i + 1) % photos.length);
+  return (
+    <div className="carousel">
+      <div className="carousel-track" style={{ transform: `translateX(-${idx * 100}%)` }}>
+        {photos.map((ph) => (
+          <img
+            key={ph.id}
+            src={`${UPLOADS_URL}/places/${ph.filename}`}
+            alt=""
+            className="carousel-img"
+            onClick={() => onOpenLightbox(ph.filename)}
+          />
+        ))}
+      </div>
+      {photos.length > 1 && (
+        <>
+          <button className="carousel-btn carousel-btn--prev" onClick={prev}>‹</button>
+          <button className="carousel-btn carousel-btn--next" onClick={next}>›</button>
+          <div className="carousel-dots">
+            {photos.map((_, i) => (
+              <button
+                key={i}
+                className={`carousel-dot${i === idx ? ' active' : ''}`}
+                onClick={() => setIdx(i)}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 // Contribution card — view and edit modes, no internal edit toggle
 function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMode, onEditClose }) {
   const { user } = useAuth();
@@ -225,12 +262,7 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMod
       {(!isOwn || !isEditMode) && (
         <>
           {photos.length > 0 && (
-            <div className="photos-scroll">
-              {photos.map((ph) => (
-                <img key={ph.id} src={`${UPLOADS_URL}/places/${ph.filename}`} alt=""
-                  className="photos-scroll-item" onClick={() => setLightbox(ph.filename)} />
-              ))}
-            </div>
+            <PhotoCarousel photos={photos} onOpenLightbox={setLightbox} />
           )}
           {review?.text && (
             <p className="review-text" style={{ marginTop: photos.length ? 6 : 0 }}>{review.text}</p>
