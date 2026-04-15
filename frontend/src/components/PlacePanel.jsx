@@ -60,43 +60,6 @@ const PRICE_LEVELS = [
   { value: 4, label: '₽₽₽₽ Очень дорого' },
 ];
 
-function PhotoCarousel({ photos, onOpenLightbox }) {
-  const [idx, setIdx] = useState(0);
-  if (!photos.length) return null;
-  const prev = () => setIdx((i) => (i - 1 + photos.length) % photos.length);
-  const next = () => setIdx((i) => (i + 1) % photos.length);
-  return (
-    <div className="carousel">
-      <div className="carousel-track" style={{ transform: `translateX(-${idx * 100}%)` }}>
-        {photos.map((ph) => (
-          <img
-            key={ph.id}
-            src={`${UPLOADS_URL}/places/${ph.filename}`}
-            alt=""
-            className="carousel-img"
-            onClick={() => onOpenLightbox(ph.filename)}
-          />
-        ))}
-      </div>
-      {photos.length > 1 && (
-        <>
-          <button className="carousel-btn carousel-btn--prev" onClick={prev}>‹</button>
-          <button className="carousel-btn carousel-btn--next" onClick={next}>›</button>
-          <div className="carousel-dots">
-            {photos.map((_, i) => (
-              <button
-                key={i}
-                className={`carousel-dot${i === idx ? ' active' : ''}`}
-                onClick={() => setIdx(i)}
-              />
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
 // Contribution card — view and edit modes, no internal edit toggle
 function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMode, onEditClose }) {
   const { user } = useAuth();
@@ -105,7 +68,7 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMod
   const [newPhotos, setNewPhotos]       = useState([]);
   const [saving, setSaving]             = useState(false);
   const [deleting, setDeleting]         = useState(false);
-  const [lightbox, setLightbox]         = useState(null);
+  const [lightbox, setLightbox]         = useState(null); // index into photos[]
   const [comments, setComments]         = useState([]);
   const [commentText, setCommentText]   = useState('');
   const [postingComment, setPostingComment] = useState(false);
@@ -212,10 +175,10 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMod
           />
           {photos.length > 0 && (
             <div className="photos-grid" style={{ marginTop: 8 }}>
-              {photos.map((ph) => (
+              {photos.map((ph, i) => (
                 <div key={ph.id} className="photo-thumb-wrap">
                   <img src={`${UPLOADS_URL}/places/${ph.filename}`} alt=""
-                    className="photo-thumb" onClick={() => setLightbox(ph.filename)} />
+                    className="photo-thumb" onClick={() => setLightbox(i)} />
                   <button className="photo-delete-btn" onClick={() => handleDeletePhoto(ph.id)} title="Удалить фото">✕</button>
                 </div>
               ))}
@@ -262,7 +225,12 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMod
       {(!isOwn || !isEditMode) && (
         <>
           {photos.length > 0 && (
-            <PhotoCarousel photos={photos} onOpenLightbox={setLightbox} />
+            <div className="photos-grid">
+              {photos.map((ph, i) => (
+                <img key={ph.id} src={`${UPLOADS_URL}/places/${ph.filename}`} alt=""
+                  className="photo-thumb" onClick={() => setLightbox(i)} />
+              ))}
+            </div>
           )}
           {review?.text && (
             <p className="review-text" style={{ marginTop: photos.length ? 6 : 0 }}>{review.text}</p>
@@ -299,9 +267,22 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMod
         </>
       )}
 
-      {lightbox && (
+      {lightbox !== null && (
         <div className="lightbox" onClick={() => setLightbox(null)}>
-          <img src={`${UPLOADS_URL}/places/${lightbox}`} alt="" />
+          <img src={`${UPLOADS_URL}/places/${photos[lightbox]?.filename}`} alt="" onClick={(e) => e.stopPropagation()} />
+          {photos.length > 1 && (
+            <>
+              <button className="lightbox-btn lightbox-btn--prev"
+                onClick={(e) => { e.stopPropagation(); setLightbox((lightbox - 1 + photos.length) % photos.length); }}>
+                ‹
+              </button>
+              <button className="lightbox-btn lightbox-btn--next"
+                onClick={(e) => { e.stopPropagation(); setLightbox((lightbox + 1) % photos.length); }}>
+                ›
+              </button>
+              <span className="lightbox-counter">{lightbox + 1} / {photos.length}</span>
+            </>
+          )}
         </div>
       )}
     </div>
