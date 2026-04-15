@@ -187,6 +187,32 @@ button { font-family: inherit; }
 .photo-thumb:hover { opacity: .85; }
 .upload-btn { margin-top: .75rem; display: inline-flex; }
 
+/* ─── Photo scroll strip (view mode) ─────────── */
+.photos-scroll {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: .5rem;
+  /* show ~2.5 photos, hinting there are more */
+  padding-bottom: 4px;
+}
+.photos-scroll::-webkit-scrollbar { height: 3px; }
+.photos-scroll::-webkit-scrollbar-track { background: transparent; }
+.photos-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.photos-scroll-item {
+  flex-shrink: 0;
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 6px;
+  cursor: zoom-in;
+  scroll-snap-align: start;
+  transition: opacity .15s;
+}
+.photos-scroll-item:hover { opacity: .85; }
+
 /* ─── Reviews ────────────────────────────────── */
 .review-form {
   background: var(--bg); border: 1px solid var(--border);

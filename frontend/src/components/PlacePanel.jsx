@@ -225,10 +225,10 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMod
       {(!isOwn || !isEditMode) && (
         <>
           {photos.length > 0 && (
-            <div className="photos-grid" style={{ marginTop: 4 }}>
+            <div className="photos-scroll">
               {photos.map((ph) => (
                 <img key={ph.id} src={`${UPLOADS_URL}/places/${ph.filename}`} alt=""
-                  className="photo-thumb" onClick={() => setLightbox(ph.filename)} />
+                  className="photos-scroll-item" onClick={() => setLightbox(ph.filename)} />
               ))}
             </div>
           )}
