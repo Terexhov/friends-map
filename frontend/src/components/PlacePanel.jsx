@@ -66,6 +66,7 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMod
   const [editText, setEditText]         = useState(review?.text || '');
   const [editRating, setEditRating]     = useState(review?.rating || 5);
   const [newPhotos, setNewPhotos]       = useState([]);
+  const [internalEdit, setInternalEdit] = useState(false);
   const [saving, setSaving]             = useState(false);
   const [deleting, setDeleting]         = useState(false);
   const [lightbox, setLightbox]         = useState(null); // index into photos[]
@@ -81,14 +82,16 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMod
     }
   }, [review?.id]);
 
+  const effectiveEdit = isEditMode || internalEdit;
+
   // Sync edit fields whenever edit mode is entered
   useEffect(() => {
-    if (isEditMode) {
+    if (isEditMode || internalEdit) {
       setEditText(review?.text || '');
       setEditRating(review?.rating || 5);
       setNewPhotos([]);
     }
-  }, [isEditMode]);
+  }, [isEditMode, internalEdit]);
 
   const handleAddComment = async () => {
     if (!commentText.trim()) return;
@@ -113,7 +116,7 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMod
     }
   };
 
-  if (!isEditMode && !review && photos.length === 0) return null;
+  if (!effectiveEdit && !review && photos.length === 0) return null;
 
   const handleSave = async () => {
     setSaving(true);
@@ -130,7 +133,8 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMod
       }
       setNewPhotos([]);
       await onRefresh();
-      onEditClose?.();
+      if (internalEdit) setInternalEdit(false);
+      else onEditClose?.();
     } catch {
       alert('Не удалось сохранить');
     } finally {
@@ -164,7 +168,7 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMod
   return (
     <div className={`contribution-card${isOwn ? ' own' : ''}`}>
       {/* EDIT mode */}
-      {isOwn && isEditMode && (
+      {isOwn && effectiveEdit && (
         <div className="contribution-edit">
           <textarea
             className="form-input"
@@ -198,7 +202,7 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMod
             <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={saving}>
               {saving ? 'Сохраняем...' : 'Сохранить'}
             </button>
-            <button className="btn btn-outline btn-sm" onClick={() => { setNewPhotos([]); onEditClose?.(); }}>Отмена</button>
+            <button className="btn btn-outline btn-sm" onClick={() => { setNewPhotos([]); if (internalEdit) setInternalEdit(false); else onEditClose?.(); }}>Отмена</button>
             {photos.length + newPhotos.length < 5 && (
               <label className="btn btn-outline btn-sm upload-btn">
                 + Фото {photos.length + newPhotos.length > 0 ? `(${photos.length + newPhotos.length}/5)` : ''}
@@ -222,8 +226,13 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMod
       )}
 
       {/* VIEW mode */}
-      {(!isOwn || !isEditMode) && (
+      {(!isOwn || !effectiveEdit) && (
         <>
+          {isOwn && (review || photos.length > 0) && (
+            <div style={{ textAlign: 'right', marginBottom: 4 }}>
+              <button className="btn-icon-sm" onClick={() => setInternalEdit(true)} title="Редактировать отзыв">✏️</button>
+            </div>
+          )}
           {photos.length > 0 && (
             <div className="photos-grid">
               {photos.map((ph, i) => (

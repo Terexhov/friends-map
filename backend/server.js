@@ -7,6 +7,7 @@ const authRoutes = require('./routes/auth');
 const usersRoutes = require('./routes/users');
 const placesRoutes = require('./routes/places');
 const reviewsRoutes = require('./routes/reviews');
+const { swaggerUi, spec } = require('./swagger');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -38,6 +39,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/places', placesRoutes);
 app.use('/api/reviews', reviewsRoutes);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(spec));
 
 // Serve React in production
 if (IS_PROD) {
