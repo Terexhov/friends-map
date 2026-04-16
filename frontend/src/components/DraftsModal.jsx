@@ -3,7 +3,7 @@ import { getDrafts, removeDraft } from '../drafts';
 
 const CATEGORY_LABELS = {
   cafe: '☕ Кафе', coffee: '☕ Кофейня', fastfood: '🍔 Фастфуд',
-  restaurant: '🍽️ Ресторан', bar: '🍺 Бар', other: '📍 Другое',
+  restaurant: '🍽️ Ресторан', bar: '🍺 Бар', bistro: '🍽 Столовая', other: '📍 Другое',
 };
 
 export default function DraftsModal({ onClose, onResume }) {

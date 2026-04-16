@@ -8,6 +8,7 @@ const CATEGORY_LABELS = {
   fastfood:    '🍔 Фастфуд',
   restaurant:  '🍽️ Ресторан',
   bar:         '🍺 Бар',
+  bistro:      '🍽 Столовая',
   other:       '📍 Другое',
 };
 
@@ -17,6 +18,7 @@ const CATEGORIES = [
   { value: 'fastfood',   label: '🍔 Фастфуд' },
   { value: 'restaurant', label: '🍽️ Ресторан' },
   { value: 'bar',        label: '🍺 Бар' },
+  { value: 'bistro',     label: '🍽 Столовая' },
   { value: 'other',      label: '📍 Другое' },
 ];
 
@@ -30,9 +32,10 @@ const CUISINE_LABELS = {
   italian:     '🍕 Итальянская',
   georgian:    '🫕 Грузинская',
   american:    '🍔 Американская',
-  middle_east: '🧆 Ближневосточная',
-  indian:      '🍛 Индийская',
-  other:       '🌍 Другая',
+  middle_east:   '🧆 Ближневосточная',
+  central_asian: '🥘 Среднеазиатская',
+  indian:        '🍛 Индийская',
+  other:         '🌍 Другая',
 };
 
 const CUISINES = [
@@ -46,9 +49,10 @@ const CUISINES = [
   { value: 'italian',     label: '🍕 Итальянская' },
   { value: 'georgian',    label: '🫕 Грузинская' },
   { value: 'american',    label: '🍔 Американская' },
-  { value: 'middle_east', label: '🧆 Ближневосточная' },
-  { value: 'indian',      label: '🍛 Индийская' },
-  { value: 'other',       label: '🌍 Другая' },
+  { value: 'middle_east',   label: '🧆 Ближневосточная' },
+  { value: 'central_asian', label: '🥘 Среднеазиатская' },
+  { value: 'indian',        label: '🍛 Индийская' },
+  { value: 'other',         label: '🌍 Другая' },
 ];
 
 const PRICE_LABELS = { 1: '₽', 2: '₽₽', 3: '₽₽₽', 4: '₽₽₽₽' };
@@ -61,14 +65,15 @@ const PRICE_LEVELS = [
 ];
 
 // Contribution card — view and edit modes, no internal edit toggle
-function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMode, onEditClose }) {
+function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMode, onEditClose, isPlaceOwner }) {
   const { user } = useAuth();
-  const [editText, setEditText]         = useState(review?.text || '');
-  const [editRating, setEditRating]     = useState(review?.rating || 5);
-  const [newPhotos, setNewPhotos]         = useState([]);
-  const [pendingDeletes, setPendingDeletes] = useState([]); // photo ids to delete on save
-  const [internalEdit, setInternalEdit]   = useState(false);
-  const [saving, setSaving]             = useState(false);
+  const [editText, setEditText]               = useState(review?.text || '');
+  const [editRating, setEditRating]           = useState(review?.rating || 5);
+  const [newPhotos, setNewPhotos]             = useState([]);
+  const [pendingDeletes, setPendingDeletes]   = useState([]);
+  const [internalEdit, setInternalEdit]       = useState(false);
+  const [reviewEditClosed, setReviewEditClosed] = useState(false); // close review without closing place form
+  const [saving, setSaving]                   = useState(false);
   const [deleting, setDeleting]         = useState(false);
   const [lightbox, setLightbox]         = useState(null); // index into photos[]
   const [comments, setComments]         = useState([]);
@@ -83,17 +88,22 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMod
     }
   }, [review?.id]);
 
-  const effectiveEdit = isEditMode || internalEdit;
+  // reviewEditClosed: owner saved/cancelled review while place form stays open
+  // resets automatically when isEditMode turns off (place form closed) or internalEdit changes
+  useEffect(() => { setReviewEditClosed(false); }, [isEditMode, internalEdit]);
+
+  const effectiveEdit = (isEditMode && !reviewEditClosed) || internalEdit;
 
   // Sync edit fields whenever edit mode is entered
   useEffect(() => {
-    if (isEditMode || internalEdit) {
+    if (effectiveEdit) {
       setEditText(review?.text || '');
       setEditRating(review?.rating || 5);
       setNewPhotos([]);
       setPendingDeletes([]);
     }
-  }, [isEditMode, internalEdit]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditMode, internalEdit, reviewEditClosed]);
 
   const handleAddComment = async () => {
     if (!commentText.trim()) return;
@@ -144,6 +154,7 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMod
       setPendingDeletes([]);
       await onRefresh();
       if (internalEdit) setInternalEdit(false);
+      else if (isEditMode) setReviewEditClosed(true); // place form stays open
       else onEditClose?.();
     } catch {
       alert('Не удалось сохранить');
@@ -219,7 +230,12 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMod
               {saving ? 'Сохраняем...' : 'Сохранить'}
             </button>
             <button className="btn btn-outline btn-sm"
-              onClick={() => { setNewPhotos([]); setPendingDeletes([]); if (internalEdit) setInternalEdit(false); else onEditClose?.(); }}>
+              onClick={() => {
+                setNewPhotos([]); setPendingDeletes([]);
+                if (internalEdit) setInternalEdit(false);
+                else if (isEditMode) setReviewEditClosed(true);
+                else onEditClose?.();
+              }}>
               Отмена
             </button>
             {review && (
@@ -236,7 +252,7 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMod
       {/* VIEW mode */}
       {(!isOwn || !effectiveEdit) && (
         <>
-          {isOwn && (review || photos.length > 0) && (
+          {isOwn && !isPlaceOwner && (review || photos.length > 0) && (
             <div style={{ textAlign: 'right', marginBottom: 4 }}>
               <button className="btn-icon-sm" onClick={() => setInternalEdit(true)} title="Редактировать отзыв">✏️</button>
             </div>
@@ -591,6 +607,7 @@ export default function PlacePanel({ place: initialPlace, onClose, onDelete, onR
                   placeId={place.id}
                   isEditMode={editing && isOwn}
                   onEditClose={() => setEditing(false)}
+                  isPlaceOwner={isOwner}
                 />
               </div>
             );

@@ -8,6 +8,7 @@ const CATEGORIES = [
   { value: 'fastfood',    label: '🍔 Фастфуд' },
   { value: 'restaurant',  label: '🍽️ Ресторан' },
   { value: 'bar',         label: '🍺 Бар' },
+  { value: 'bistro',      label: '🍽 Столовая' },
   { value: 'other',       label: '📍 Другое' },
 ];
 
@@ -22,9 +23,10 @@ const CUISINES = [
   { value: 'italian',     label: '🍕 Итальянская' },
   { value: 'georgian',    label: '🫕 Грузинская' },
   { value: 'american',    label: '🍔 Американская' },
-  { value: 'middle_east', label: '🧆 Ближневосточная' },
-  { value: 'indian',      label: '🍛 Индийская' },
-  { value: 'other',       label: '🌍 Другая' },
+  { value: 'middle_east',   label: '🧆 Ближневосточная' },
+  { value: 'central_asian', label: '🥘 Среднеазиатская' },
+  { value: 'indian',        label: '🍛 Индийская' },
+  { value: 'other',         label: '🌍 Другая' },
 ];
 
 const PRICE_LEVELS = [
