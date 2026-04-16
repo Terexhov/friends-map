@@ -837,7 +837,27 @@ textarea.form-input { resize: vertical; }
 }
 .photo-thumb-wrap {
   position: relative;
-  display: inline-block;
+  display: block;
+}
+.edit-photos-grid {
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+.photo-add-tile {
+  aspect-ratio: 1;
+  border-radius: 4px;
+  border: 1.5px dashed var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-muted, #888);
+  font-size: 12px;
+  transition: border-color .15s, color .15s;
+}
+.photo-add-tile:hover {
+  border-color: var(--primary);
+  color: var(--primary);
 }
 .photo-delete-btn {
   position: absolute;

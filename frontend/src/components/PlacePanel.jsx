@@ -178,52 +178,53 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMod
             rows={3}
             placeholder="Ваш отзыв..."
           />
-          {photos.filter((ph) => !pendingDeletes.includes(ph.id)).length > 0 && (
-            <div className="photos-grid" style={{ marginTop: 8 }}>
-              {photos.filter((ph) => !pendingDeletes.includes(ph.id)).map((ph, i) => (
-                <div key={ph.id} className="photo-thumb-wrap">
-                  <img src={`${UPLOADS_URL}/places/${ph.filename}`} alt=""
-                    className="photo-thumb" onClick={() => setLightbox(i)} />
+
+          {/* Unified photo grid: existing + new + add-tile */}
+          <div className="photos-grid edit-photos-grid">
+            {photos
+              .filter((ph) => !pendingDeletes.includes(ph.id))
+              .map((ph) => (
+                <div key={`e-${ph.id}`} className="photo-thumb-wrap">
+                  <img src={`${UPLOADS_URL}/places/${ph.filename}`} alt="" className="photo-thumb" />
                   <button className="photo-delete-btn"
                     onClick={() => setPendingDeletes((p) => [...p, ph.id])}
                     title="Удалить фото">✕</button>
                 </div>
               ))}
-            </div>
-          )}
-          {newPhotos.length > 0 && (
-            <div className="compose-photos-preview">
-              {newPhotos.map((f, i) => (
-                <div key={i} className="compose-photo-remove">
-                  <img src={URL.createObjectURL(f)} alt="" className="compose-photo-thumb" />
-                  <button onClick={() => setNewPhotos((p) => p.filter((_, j) => j !== i))}>✕</button>
-                </div>
-              ))}
-            </div>
-          )}
+            {newPhotos.map((f, i) => (
+              <div key={`n-${i}`} className="photo-thumb-wrap">
+                <img src={URL.createObjectURL(f)} alt="" className="photo-thumb" />
+                <button className="photo-delete-btn"
+                  onClick={() => setNewPhotos((p) => p.filter((_, j) => j !== i))}
+                  title="Убрать">✕</button>
+              </div>
+            ))}
+            {photos.filter((ph) => !pendingDeletes.includes(ph.id)).length + newPhotos.length < 5 && (
+              <label className="photo-add-tile">
+                + Фото
+                <input type="file" multiple accept="image/*" style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const kept = photos.filter((ph) => !pendingDeletes.includes(ph.id)).length;
+                    const remaining = 5 - kept - newPhotos.length;
+                    setNewPhotos((p) => [...p, ...Array.from(e.target.files).slice(0, remaining)]);
+                    e.target.value = '';
+                  }}
+                />
+              </label>
+            )}
+          </div>
+
           <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
             <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={saving}>
               {saving ? 'Сохраняем...' : 'Сохранить'}
             </button>
-            <button className="btn btn-outline btn-sm" onClick={() => { setNewPhotos([]); setPendingDeletes([]); if (internalEdit) setInternalEdit(false); else onEditClose?.(); }}>Отмена</button>
-            {(() => {
-              const kept = photos.filter((ph) => !pendingDeletes.includes(ph.id)).length;
-              const total = kept + newPhotos.length;
-              return total < 5 && (
-                <label className="btn btn-outline btn-sm upload-btn">
-                  + Фото {total > 0 ? `(${total}/5)` : ''}
-                  <input type="file" multiple accept="image/*" style={{ display: 'none' }}
-                    onChange={(e) => {
-                      const remaining = 5 - total;
-                      setNewPhotos((p) => [...p, ...Array.from(e.target.files).slice(0, remaining)]);
-                      e.target.value = '';
-                    }}
-                  />
-                </label>
-              );
-            })()}
+            <button className="btn btn-outline btn-sm"
+              onClick={() => { setNewPhotos([]); setPendingDeletes([]); if (internalEdit) setInternalEdit(false); else onEditClose?.(); }}>
+              Отмена
+            </button>
             {review && (
-              <button className="btn btn-outline btn-sm" style={{ color: 'var(--danger)', borderColor: 'var(--danger)', marginLeft: 'auto' }}
+              <button className="btn btn-outline btn-sm"
+                style={{ color: 'var(--danger)', borderColor: 'var(--danger)', marginLeft: 'auto' }}
                 onClick={handleDeleteReview} disabled={deleting}>
                 Удалить отзыв
               </button>
