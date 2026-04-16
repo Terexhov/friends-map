@@ -65,8 +65,9 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMod
   const { user } = useAuth();
   const [editText, setEditText]         = useState(review?.text || '');
   const [editRating, setEditRating]     = useState(review?.rating || 5);
-  const [newPhotos, setNewPhotos]       = useState([]);
-  const [internalEdit, setInternalEdit] = useState(false);
+  const [newPhotos, setNewPhotos]         = useState([]);
+  const [pendingDeletes, setPendingDeletes] = useState([]); // photo ids to delete on save
+  const [internalEdit, setInternalEdit]   = useState(false);
   const [saving, setSaving]             = useState(false);
   const [deleting, setDeleting]         = useState(false);
   const [lightbox, setLightbox]         = useState(null); // index into photos[]
@@ -90,6 +91,7 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMod
       setEditText(review?.text || '');
       setEditRating(review?.rating || 5);
       setNewPhotos([]);
+      setPendingDeletes([]);
     }
   }, [isEditMode, internalEdit]);
 
@@ -122,16 +124,24 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMod
     setSaving(true);
     try {
       if (review) {
-        await api.put(`/reviews/${review.id}`, { rating: editRating, text: editText });
-      } else if (editText.trim()) {
-        await api.post('/reviews', { place_id: placeId, rating: editRating, text: editText });
-      }
-      if (newPhotos.length) {
+        // Single PUT: review fields + new photos + deletions
         const fd = new FormData();
+        fd.append('rating', editRating);
+        fd.append('text', editText);
+        if (pendingDeletes.length) fd.append('delete_photo_ids', JSON.stringify(pendingDeletes));
         newPhotos.forEach((f) => fd.append('photos', f));
-        await api.post(`/places/${placeId}/photos`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        await api.put(`/reviews/${review.id}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      } else if (editText.trim()) {
+        // Create new review, then upload photos separately
+        await api.post('/reviews', { place_id: placeId, rating: editRating, text: editText });
+        if (newPhotos.length) {
+          const fd = new FormData();
+          newPhotos.forEach((f) => fd.append('photos', f));
+          await api.post(`/places/${placeId}/photos`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        }
       }
       setNewPhotos([]);
+      setPendingDeletes([]);
       await onRefresh();
       if (internalEdit) setInternalEdit(false);
       else onEditClose?.();
@@ -139,15 +149,6 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMod
       alert('Не удалось сохранить');
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleDeletePhoto = async (photoId) => {
-    try {
-      await api.delete(`/places/${placeId}/photos/${photoId}`);
-      await onRefresh();
-    } catch {
-      alert('Не удалось удалить фото');
     }
   };
 
@@ -177,13 +178,15 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMod
             rows={3}
             placeholder="Ваш отзыв..."
           />
-          {photos.length > 0 && (
+          {photos.filter((ph) => !pendingDeletes.includes(ph.id)).length > 0 && (
             <div className="photos-grid" style={{ marginTop: 8 }}>
-              {photos.map((ph, i) => (
+              {photos.filter((ph) => !pendingDeletes.includes(ph.id)).map((ph, i) => (
                 <div key={ph.id} className="photo-thumb-wrap">
                   <img src={`${UPLOADS_URL}/places/${ph.filename}`} alt=""
                     className="photo-thumb" onClick={() => setLightbox(i)} />
-                  <button className="photo-delete-btn" onClick={() => handleDeletePhoto(ph.id)} title="Удалить фото">✕</button>
+                  <button className="photo-delete-btn"
+                    onClick={() => setPendingDeletes((p) => [...p, ph.id])}
+                    title="Удалить фото">✕</button>
                 </div>
               ))}
             </div>
@@ -202,19 +205,23 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMod
             <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={saving}>
               {saving ? 'Сохраняем...' : 'Сохранить'}
             </button>
-            <button className="btn btn-outline btn-sm" onClick={() => { setNewPhotos([]); if (internalEdit) setInternalEdit(false); else onEditClose?.(); }}>Отмена</button>
-            {photos.length + newPhotos.length < 5 && (
-              <label className="btn btn-outline btn-sm upload-btn">
-                + Фото {photos.length + newPhotos.length > 0 ? `(${photos.length + newPhotos.length}/5)` : ''}
-                <input type="file" multiple accept="image/*" style={{ display: 'none' }}
-                  onChange={(e) => {
-                    const remaining = 5 - photos.length - newPhotos.length;
-                    setNewPhotos((p) => [...p, ...Array.from(e.target.files).slice(0, remaining)]);
-                    e.target.value = '';
-                  }}
-                />
-              </label>
-            )}
+            <button className="btn btn-outline btn-sm" onClick={() => { setNewPhotos([]); setPendingDeletes([]); if (internalEdit) setInternalEdit(false); else onEditClose?.(); }}>Отмена</button>
+            {(() => {
+              const kept = photos.filter((ph) => !pendingDeletes.includes(ph.id)).length;
+              const total = kept + newPhotos.length;
+              return total < 5 && (
+                <label className="btn btn-outline btn-sm upload-btn">
+                  + Фото {total > 0 ? `(${total}/5)` : ''}
+                  <input type="file" multiple accept="image/*" style={{ display: 'none' }}
+                    onChange={(e) => {
+                      const remaining = 5 - total;
+                      setNewPhotos((p) => [...p, ...Array.from(e.target.files).slice(0, remaining)]);
+                      e.target.value = '';
+                    }}
+                  />
+                </label>
+              );
+            })()}
             {review && (
               <button className="btn btn-outline btn-sm" style={{ color: 'var(--danger)', borderColor: 'var(--danger)', marginLeft: 'auto' }}
                 onClick={handleDeleteReview} disabled={deleting}>

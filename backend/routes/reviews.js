@@ -1,8 +1,34 @@
 const express = require('express');
+const multer  = require('multer');
+const path    = require('path');
+const fs      = require('fs');
 const { getDB } = require('../db');
 const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
+
+// Shared photo storage (same dir as places)
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const base = process.env.DATA_DIR || path.join(__dirname, '../data');
+    const dir  = path.join(base, 'uploads/places');
+    fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `place-${Date.now()}-${Math.random().toString(36).slice(2, 9)}${ext}`);
+  },
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) cb(null, true);
+    else cb(new Error('Only images are allowed'));
+  },
+});
 
 // Add a review
 router.post('/', authMiddleware, (req, res) => {
@@ -58,10 +84,16 @@ router.post('/:id/like', authMiddleware, (req, res) => {
   }
 });
 
-// Edit a review (owner only)
-router.put('/:id', authMiddleware, (req, res) => {
-  const { rating, text } = req.body;
+// Edit a review — updates text/rating AND manages photos in one request
+// Body (multipart/form-data):
+//   rating            integer 1-5
+//   text              string
+//   photos            files  — новые фото (до 10)
+//   delete_photo_ids  JSON-array строка — id фото для удаления
+router.put('/:id', authMiddleware, upload.array('photos', 10), (req, res) => {
+  const { rating, text, delete_photo_ids } = req.body;
   const db = getDB();
+
   const review = db.prepare('SELECT * FROM reviews WHERE id = ?').get(req.params.id);
   if (!review) return res.status(404).json({ error: 'Review not found' });
   if (review.user_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
@@ -70,8 +102,35 @@ router.put('/:id', authMiddleware, (req, res) => {
   if (ratingNum < 1 || ratingNum > 5)
     return res.status(400).json({ error: 'Rating must be between 1 and 5' });
 
+  // 1. Update review text and rating
   db.prepare('UPDATE reviews SET rating = ?, text = ? WHERE id = ?')
     .run(ratingNum, text?.trim() ?? review.text, req.params.id);
+
+  // 2. Delete specified photos (uploader or place owner)
+  if (delete_photo_ids) {
+    let ids = [];
+    try { ids = JSON.parse(delete_photo_ids); } catch {}
+
+    const base = process.env.DATA_DIR || path.join(__dirname, '../data');
+    for (const photoId of ids) {
+      const photo = db.prepare(`
+        SELECT pp.*, p.user_id AS place_owner
+        FROM place_photos pp
+        JOIN places p ON pp.place_id = p.id
+        WHERE pp.id = ?
+      `).get(photoId);
+      if (!photo) continue;
+      if (photo.user_id !== req.user.id && photo.place_owner !== req.user.id) continue;
+      try { fs.unlinkSync(path.join(base, 'uploads/places', photo.filename)); } catch {}
+      db.prepare('DELETE FROM place_photos WHERE id = ?').run(photoId);
+    }
+  }
+
+  // 3. Add new photos (linked to the review's place)
+  if (req.files?.length) {
+    const ins = db.prepare('INSERT INTO place_photos (place_id, user_id, filename) VALUES (?, ?, ?)');
+    req.files.forEach((f) => ins.run(review.place_id, req.user.id, f.filename));
+  }
 
   const updated = db.prepare(`
     SELECT r.*, u.username, u.avatar,
@@ -79,6 +138,7 @@ router.put('/:id', authMiddleware, (req, res) => {
     FROM reviews r JOIN users u ON r.user_id = u.id
     WHERE r.id = ?
   `).get(req.params.id);
+
   res.json(updated);
 });
 

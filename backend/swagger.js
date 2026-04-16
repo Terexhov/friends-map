@@ -468,17 +468,20 @@ const spec = {
     '/reviews/{id}': {
       put: {
         tags: ['Reviews'],
-        summary: 'Редактировать свой отзыв (текст и рейтинг)',
+        summary: 'Редактировать свой отзыв — текст, рейтинг и фото за один запрос',
+        description: 'Единый PUT: обновляет текст/рейтинг, удаляет указанные фото и добавляет новые. Тело — `multipart/form-data`.',
         security: [{ bearerAuth: [] }],
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' }, example: 3 }],
         requestBody: {
           content: {
-            'application/json': {
+            'multipart/form-data': {
               schema: {
                 type: 'object',
                 properties: {
-                  rating: { type: 'integer', minimum: 1, maximum: 5, example: 5 },
-                  text:   { type: 'string', example: 'Всё понравилось!' },
+                  rating:           { type: 'integer', minimum: 1, maximum: 5, example: 5 },
+                  text:             { type: 'string', example: 'Всё понравилось!' },
+                  delete_photo_ids: { type: 'string', description: 'JSON-массив id фото для удаления, например `[10, 12]`', example: '[10,12]' },
+                  photos:           { type: 'array', items: { type: 'string', format: 'binary' }, description: 'Новые фото (до 10, каждый ≤ 10 МБ)' },
                 },
               },
             },
