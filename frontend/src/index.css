@@ -455,20 +455,41 @@ textarea.form-input { resize: vertical; }
   gap: .4rem;
   margin-bottom: .3rem;
 }
-.cc-review-author-btn {
+.cc-author-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   background: none;
   border: none;
-  padding: 0;
   cursor: pointer;
+  padding: 6px 0 4px;
+  width: 100%;
   text-align: left;
 }
-.cc-review-author-btn:hover { color: var(--primary); }
+.cc-author-row:hover .cc-author-name { color: var(--primary-dark); }
+.cc-author-avatar { flex-shrink: 0; }
+.cc-author-initial {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: var(--primary-bg);
+  color: var(--primary);
+  font-size: .85rem;
+  font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.cc-author-name {
+  font-size: .95rem;
+  font-weight: 600;
+  color: var(--primary);
+}
 .cc-review-own-label {
   font-size: .7rem;
   color: var(--muted);
   background: var(--border);
   border-radius: 4px;
   padding: 1px 5px;
+  margin-left: 2px;
 }
 
 /* ─── Review comments ────────────────────────── */

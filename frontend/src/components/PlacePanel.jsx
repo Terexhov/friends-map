@@ -605,17 +605,20 @@ export default function PlacePanel({ place: initialPlace, onClose, onDelete, onR
 
           {contributors.map(({ uid, review, photos }) => {
             const username = review?.username ?? photos[0]?.username;
+            const avatar   = review?.avatar   ?? photos[0]?.avatar;
             const isOwn = user?.id === uid;
             if (!username && !review && photos.length === 0) return null;
             return (
               <div key={uid}>
                 {username && (
-                  <div className="panel-section-header" style={{ marginTop: 8 }}>
-                    <button className="cc-review-author-btn panel-section-title" onClick={() => onUserClick?.(uid)}>
-                      {username}
-                    </button>
+                  <button className="cc-author-row" onClick={() => onUserClick?.(uid)}>
+                    {avatar
+                      ? <img src={`${UPLOADS_URL}/avatars/${avatar}`} className="avatar avatar-sm cc-author-avatar" alt="" />
+                      : <span className="cc-author-initial">{username[0].toUpperCase()}</span>
+                    }
+                    <span className="cc-author-name">{username}</span>
                     {isOwn && <span className="cc-review-own-label">вы</span>}
-                  </div>
+                  </button>
                 )}
                 <UserContribution
                   review={review}
