@@ -1028,6 +1028,7 @@ textarea.form-input { resize: vertical; }
   overflow: hidden;
 }
 .sfbar-dropdown--scroll { max-height: 220px; overflow-y: auto; }
+.sfbar-dropdown--right { left: auto; right: 0; }
 
 .sfbar-dd-item {
   display: flex;

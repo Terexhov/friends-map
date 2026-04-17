@@ -176,8 +176,8 @@ export default function SearchFilterBar({ places, filters, onFiltersChange, hasP
             )}
           </div>
 
-          {/* Friend / Author */}
-          <div className="sfbar-chip-wrap">
+          {/* Friend / Author — dropdown right-aligned to avoid off-screen on mobile */}
+          <div className="sfbar-chip-wrap sfbar-chip-wrap--right">
             <button
               className={`sfbar-chip${filters.userId ? ' active' : ''}`}
               onClick={() => { toggle('friend'); setFriendSearch(''); }}
@@ -185,7 +185,7 @@ export default function SearchFilterBar({ places, filters, onFiltersChange, hasP
               {selectedUser ? selectedUser.username : 'Автор'} <span className="sfbar-caret">▾</span>
             </button>
             {openDropdown === 'friend' && (
-              <div className="sfbar-dropdown sfbar-dropdown--scroll">
+              <div className="sfbar-dropdown sfbar-dropdown--scroll sfbar-dropdown--right">
                 <input
                   className="sfbar-friend-search"
                   placeholder="Поиск по имени..."
