@@ -977,15 +977,12 @@ textarea.form-input { resize: vertical; }
 }
 .sfbar-input-clear:hover { color: var(--text); }
 
-/* Chips row */
+/* Chips row — no overflow-x:auto to avoid clipping the absolutely-positioned dropdowns */
 .sfbar-chips {
   display: flex;
   gap: 6px;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  scrollbar-width: none;
+  flex-wrap: wrap;
 }
-.sfbar-chips::-webkit-scrollbar { display: none; }
 
 .sfbar-chip-wrap { position: relative; flex-shrink: 0; }
 
