@@ -604,10 +604,12 @@ export default function PlacePanel({ place: initialPlace, onClose, onDelete, onR
           )}
 
           {contributors.map(({ uid, review, photos }) => {
-            const username = review?.username ?? photos[0]?.username;
-            const avatar   = review?.avatar   ?? photos[0]?.avatar;
             const isOwn = user?.id === uid;
-            if (!username && !review && photos.length === 0) return null;
+            // Fallback chain: review → photo → own auth data (for edit-mode with no content yet)
+            const hasContent = !!(review || photos.length > 0);
+            const username = review?.username ?? photos[0]?.username ?? (isOwn ? user?.username : null);
+            const avatar   = review?.avatar   ?? photos[0]?.avatar   ?? (isOwn ? user?.avatar   : null);
+            if (!hasContent && !(isOwn && editing)) return null;
             return (
               <div key={uid}>
                 {username && (
