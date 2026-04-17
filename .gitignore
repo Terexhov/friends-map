@@ -6,3 +6,9 @@ backend/uploads/
 frontend/dist/
 .env
 *.db
+
+# e2e tests — local only, not deployed to server
+e2e/
+playwright.config.js
+playwright-report/
+test-results/
