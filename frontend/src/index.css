@@ -932,7 +932,7 @@ textarea.form-input { resize: vertical; }
   bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 500;
+  z-index: 1000;
   width: min(680px, calc(100% - 32px));
   transition: opacity .2s, transform .2s;
 }
@@ -1027,7 +1027,7 @@ textarea.form-input { resize: vertical; }
   border: 1px solid var(--border);
   border-radius: 10px;
   box-shadow: var(--shadow-lg);
-  z-index: 600;
+  z-index: 1100;
   overflow: hidden;
 }
 .sfbar-dropdown--scroll { max-height: 220px; overflow-y: auto; }
