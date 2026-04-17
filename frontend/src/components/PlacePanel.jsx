@@ -426,8 +426,21 @@ export default function PlacePanel({ place: initialPlace, onClose, onDelete, onR
   const [likesCount, setLikesCount] = useState(place.likes_count || 0);
   const [featured, setFeatured]     = useState(!!place.is_featured);
   const [editing, setEditing]       = useState(false);
+  const [shareToast, setShareToast] = useState(false);
 
   const isOwner = user && place.user_id === user.id;
+
+  const handleShare = () => {
+    const url = `${window.location.origin}${window.location.pathname}?place=${place.id}`;
+    if (navigator.share) {
+      navigator.share({ title: place.name, url }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(url).then(() => {
+        setShareToast(true);
+        setTimeout(() => setShareToast(false), 2500);
+      });
+    }
+  };
   const avgRating = place.review_count > 0 ? Number(place.avg_rating).toFixed(1) : null;
 
   const photosByUser = {};
@@ -499,11 +512,16 @@ export default function PlacePanel({ place: initialPlace, onClose, onDelete, onR
         </div>
       )}
 
+      {shareToast && <div className="share-toast">Ссылка скопирована</div>}
+
       {/* Header: title row + actions row */}
       <div className="panel-header">
         <div className="panel-header-top">
           <h2 className="panel-title">{place.name}</h2>
-          <button className="btn-icon" onClick={onClose}>✕</button>
+          <div style={{ display: 'flex', gap: 2 }}>
+            <button className="btn-icon" onClick={handleShare} title="Поделиться">🔗</button>
+            <button className="btn-icon" onClick={onClose}>✕</button>
+          </div>
         </div>
         <div className="panel-header-bottom">
           <span className="panel-category">{CATEGORY_LABELS[place.category] || place.category}</span>

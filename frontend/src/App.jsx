@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import MapView from './components/MapView';
 import Navbar from './components/Navbar';
@@ -7,7 +7,10 @@ import AddPlaceModal from './components/AddPlaceModal';
 import AuthModal from './components/AuthModal';
 import ProfileModal from './components/ProfileModal';
 import DraftsModal from './components/DraftsModal';
+import SearchFilterBar from './components/SearchFilterBar';
 import api from './api';
+
+const EMPTY_FILTERS = { search: '', category: '', cuisine: '', rating: 0, userId: null };
 
 function AppContent() {
   const { user } = useAuth();
@@ -19,6 +22,7 @@ function AppContent() {
   const [profileUserId, setProfileUserId] = useState(null);
   const [showDrafts, setShowDrafts] = useState(false);
   const [activeDraft, setActiveDraft] = useState(null);
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
 
   const loadPlaces = useCallback(async () => {
     try {
@@ -33,12 +37,33 @@ function AppContent() {
 
   const openPlace = useCallback(async (id) => {
     setSelectedId(id);
-    setSelectedData(null); // clear previous panel immediately
+    setSelectedData(null);
     try {
       const res = await api.get(`/places/${id}`);
       setSelectedData(res.data);
     } catch {}
   }, []);
+
+  // Auto-open place from ?place=ID share URL
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get('place');
+    if (id) {
+      openPlace(Number(id));
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [openPlace]);
+
+  const filteredPlaces = useMemo(() => {
+    const { search, category, cuisine, rating, userId } = filters;
+    return places.filter((p) => {
+      if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
+      if (category && p.category !== category) return false;
+      if (cuisine && p.cuisine !== cuisine) return false;
+      if (rating && (!p.avg_rating || p.avg_rating < rating)) return false;
+      if (userId && p.user_id !== userId) return false;
+      return true;
+    });
+  }, [places, filters]);
 
   const refreshPlace = useCallback(async () => {
     if (!selectedId) return;
@@ -82,7 +107,7 @@ function AppContent() {
 
       <div className="main-content">
         <MapView
-          places={places}
+          places={filteredPlaces}
           selectedPlace={selectedId}
           onPlaceClick={openPlace}
           onMapClick={handleMapClick}
@@ -90,6 +115,13 @@ function AppContent() {
         <div className="map-hint-chip">
           {user ? '📍 Нажмите на карту, чтобы добавить место' : '👋 Войдите, чтобы добавлять места и отзывы'}
         </div>
+
+        <SearchFilterBar
+          places={places}
+          filters={filters}
+          onFiltersChange={setFilters}
+          hasPanel={!!selectedData}
+        />
 
         {selectedData && (
           <PlacePanel
