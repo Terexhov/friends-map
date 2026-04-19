@@ -8,6 +8,7 @@ import AuthModal from './components/AuthModal';
 import ProfileModal from './components/ProfileModal';
 import DraftsModal from './components/DraftsModal';
 import SearchFilterBar from './components/SearchFilterBar';
+import AddressSearch from './components/AddressSearch';
 import api from './api';
 
 const EMPTY_FILTERS = { search: '', category: '', cuisine: '', rating: 0, userId: null };
@@ -22,7 +23,9 @@ function AppContent() {
   const [profileUserId, setProfileUserId] = useState(null);
   const [showDrafts, setShowDrafts] = useState(false);
   const [activeDraft, setActiveDraft] = useState(null);
-  const [filters, setFilters] = useState(EMPTY_FILTERS);
+  const [filters, setFilters]           = useState(EMPTY_FILTERS);
+  const [addressTarget, setAddressTarget] = useState(null);
+  const [streetGeojson, setStreetGeojson] = useState(null);
 
   const loadPlaces = useCallback(async () => {
     try {
@@ -111,6 +114,15 @@ function AppContent() {
           selectedPlace={selectedId}
           onPlaceClick={openPlace}
           onMapClick={handleMapClick}
+          addressTarget={addressTarget}
+          streetGeojson={streetGeojson}
+        />
+        <AddressSearch
+          onSelect={({ lat, lng, geojson, isStreet }) => {
+            setAddressTarget({ lat, lng, isStreet });
+            setStreetGeojson(geojson);
+          }}
+          onClear={() => { setAddressTarget(null); setStreetGeojson(null); }}
         />
         <div className="map-hint-chip">
           {user ? '📍 Нажмите на карту, чтобы добавить место' : '👋 Войдите, чтобы добавлять места и отзывы'}

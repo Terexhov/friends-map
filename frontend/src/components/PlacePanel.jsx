@@ -128,7 +128,7 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMod
     }
   };
 
-  if (!effectiveEdit && !review && photos.length === 0) return null;
+  if (!effectiveEdit && !review && photos.length === 0 && !isOwn) return null;
 
   const handleSave = async () => {
     setSaving(true);
@@ -252,9 +252,15 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMod
       {/* VIEW mode */}
       {(!isOwn || !effectiveEdit) && (
         <>
-          {isOwn && !isPlaceOwner && (review || photos.length > 0) && (
+          {isOwn && !isPlaceOwner && (
             <div style={{ textAlign: 'right', marginBottom: 4 }}>
-              <button className="btn-icon-sm" onClick={() => setInternalEdit(true)} title="Редактировать отзыв">✏️</button>
+              <button
+                className="btn-icon-sm"
+                onClick={() => setInternalEdit(true)}
+                title={review || photos.length > 0 ? 'Редактировать отзыв' : 'Добавить отзыв'}
+              >
+                {review || photos.length > 0 ? '✏️' : '+ Отзыв'}
+              </button>
             </div>
           )}
           {photos.length > 0 && (
@@ -609,7 +615,7 @@ export default function PlacePanel({ place: initialPlace, onClose, onDelete, onR
             const hasContent = !!(review || photos.length > 0);
             const username = review?.username ?? photos[0]?.username ?? (isOwn ? user?.username : null);
             const avatar   = review?.avatar   ?? photos[0]?.avatar   ?? (isOwn ? user?.avatar   : null);
-            if (!hasContent && !(isOwn && editing)) return null;
+            if (!hasContent && !isOwn) return null;
             return (
               <div key={uid}>
                 {username && (

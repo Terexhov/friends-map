@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
-import Map, { Marker, Popup, NavigationControl, ScaleControl } from 'react-map-gl/maplibre';
+import Map, { Marker, Popup, NavigationControl, ScaleControl, Source, Layer } from 'react-map-gl/maplibre';
 import Supercluster from 'supercluster';
 import { UPLOADS_URL } from '../api';
 
@@ -18,7 +18,13 @@ function getColor(cat) {
   return CATEGORY_COLORS[cat] || CATEGORY_COLORS.other;
 }
 
-export default function MapView({ places, selectedPlace, onPlaceClick, onMapClick }) {
+const STREET_LINE_LAYER = {
+  type: 'line',
+  paint: { 'line-color': '#3b82f6', 'line-width': 5, 'line-opacity': 0.85 },
+  layout: { 'line-cap': 'round', 'line-join': 'round' },
+};
+
+export default function MapView({ places, selectedPlace, onPlaceClick, onMapClick, addressTarget, streetGeojson }) {
   const mapRef = useRef(null);
   const [popup, setPopup] = useState(null);
   const [viewState, setViewState] = useState({
@@ -46,6 +52,16 @@ export default function MapView({ places, selectedPlace, onPlaceClick, onMapClic
     const zoom = Math.floor(viewState.zoom);
     return supercluster.getClusters([-180, -85, 180, 85], zoom);
   }, [supercluster, viewState.zoom]);
+
+  // Fly to address search result
+  useEffect(() => {
+    if (!addressTarget || !mapRef.current) return;
+    mapRef.current.flyTo({
+      center: [addressTarget.lng, addressTarget.lat],
+      zoom: addressTarget.isStreet ? 16 : 17,
+      duration: 800,
+    });
+  }, [addressTarget]);
 
   // Fly to selected place
   useEffect(() => {
@@ -154,6 +170,12 @@ export default function MapView({ places, selectedPlace, onPlaceClick, onMapClic
           </Marker>
         );
       })}
+
+      {streetGeojson && (
+        <Source id="street-highlight" type="geojson" data={{ type: 'Feature', geometry: streetGeojson }}>
+          <Layer id="street-highlight-line" {...STREET_LINE_LAYER} />
+        </Source>
+      )}
 
       {popup && popup.id === selectedPlace && (
         <Popup
