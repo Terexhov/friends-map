@@ -436,6 +436,8 @@ export default function PlacePanel({ place: initialPlace, onClose, onDelete, onR
   const [editing, setEditing]       = useState(false);
   const [shareToast, setShareToast] = useState(false);
 
+  useEffect(() => { setPlace(initialPlace); }, [initialPlace]);
+
   const isOwner = user && place.user_id === user.id;
 
   const handleShare = () => {
