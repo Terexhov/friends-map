@@ -140,14 +140,14 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMod
         fd.append('text', editText);
         if (pendingDeletes.length) fd.append('delete_photo_ids', JSON.stringify(pendingDeletes));
         newPhotos.forEach((f) => fd.append('photos', f));
-        await api.put(`/reviews/${review.id}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        await api.put(`/reviews/${review.id}`, fd);
       } else if (editText.trim()) {
         // Create new review, then upload photos separately
         await api.post('/reviews', { place_id: placeId, rating: editRating, text: editText });
         if (newPhotos.length) {
           const fd = new FormData();
           newPhotos.forEach((f) => fd.append('photos', f));
-          await api.post(`/places/${placeId}/photos`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+          await api.post(`/places/${placeId}/photos`, fd);
         }
       }
       setNewPhotos([]);
