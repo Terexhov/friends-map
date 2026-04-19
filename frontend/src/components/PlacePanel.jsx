@@ -128,7 +128,8 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMod
     }
   };
 
-  if (!effectiveEdit && !review && photos.length === 0 && !isOwn) return null;
+  // Return null when no content AND (not own card, OR own card but is place owner — owner uses section-level edit)
+  if (!effectiveEdit && !review && photos.length === 0 && (!isOwn || isPlaceOwner)) return null;
 
   const handleSave = async () => {
     setSaving(true);
@@ -141,9 +142,11 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMod
         if (pendingDeletes.length) fd.append('delete_photo_ids', JSON.stringify(pendingDeletes));
         newPhotos.forEach((f) => fd.append('photos', f));
         await api.put(`/reviews/${review.id}`, fd);
-      } else if (editText.trim()) {
-        // Create new review, then upload photos separately
-        await api.post('/reviews', { place_id: placeId, rating: editRating, text: editText });
+      } else if (editText.trim() || newPhotos.length) {
+        // Create review (if text provided) and/or upload photos
+        if (editText.trim()) {
+          await api.post('/reviews', { place_id: placeId, rating: editRating, text: editText });
+        }
         if (newPhotos.length) {
           const fd = new FormData();
           newPhotos.forEach((f) => fd.append('photos', f));
@@ -615,7 +618,9 @@ export default function PlacePanel({ place: initialPlace, onClose, onDelete, onR
             const hasContent = !!(review || photos.length > 0);
             const username = review?.username ?? photos[0]?.username ?? (isOwn ? user?.username : null);
             const avatar   = review?.avatar   ?? photos[0]?.avatar   ?? (isOwn ? user?.avatar   : null);
-            if (!hasContent && !isOwn) return null;
+            // Render own non-owner slot even without content (shows "+ Отзыв" button)
+            // Owner slot with no content → null (owner uses section-level edit button)
+            if (!hasContent && (!isOwn || isOwner)) return null;
             return (
               <div key={uid}>
                 {username && (

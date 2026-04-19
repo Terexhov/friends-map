@@ -35,6 +35,7 @@ export default function AddressSearch({ onSelect, onClear }) {
 
   const search = useCallback(async (q) => {
     setLoading(true);
+    setOpen(true);
     try {
       const url =
         `https://nominatim.openstreetmap.org/search` +
