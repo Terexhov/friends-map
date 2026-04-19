@@ -21,8 +21,9 @@ export default function AddressSearch({ onSelect, onClear }) {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen]       = useState(false);
-  const containerRef          = useRef(null);
-  const timerRef              = useRef(null);
+  const containerRef   = useRef(null);
+  const timerRef       = useRef(null);
+  const activeQueryRef = useRef(''); // guards against stale fetch results
 
   useEffect(() => {
     const handler = (e) => {
@@ -32,6 +33,8 @@ export default function AddressSearch({ onSelect, onClear }) {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  useEffect(() => () => clearTimeout(timerRef.current), []);
 
   const search = useCallback(async (q) => {
     setLoading(true);
@@ -43,18 +46,20 @@ export default function AddressSearch({ onSelect, onClear }) {
         `&limit=8&polygon_geojson=1&accept-language=ru`;
       const res  = await fetch(url);
       const data = await res.json();
+      if (activeQueryRef.current !== q) return; // query changed while fetching
       setResults(data);
       setOpen(data.length > 0);
     } catch {
-      setResults([]);
+      if (activeQueryRef.current === q) setResults([]);
     } finally {
-      setLoading(false);
+      if (activeQueryRef.current === q) setLoading(false);
     }
   }, []);
 
   const handleChange = (e) => {
     const q = e.target.value;
     setQuery(q);
+    activeQueryRef.current = q;
     clearTimeout(timerRef.current);
     if (q.trim().length < 2) { setResults([]); setOpen(false); return; }
     timerRef.current = setTimeout(() => search(q), 400);
@@ -74,6 +79,7 @@ export default function AddressSearch({ onSelect, onClear }) {
   };
 
   const handleClear = () => {
+    activeQueryRef.current = '';
     setQuery('');
     setResults([]);
     setOpen(false);

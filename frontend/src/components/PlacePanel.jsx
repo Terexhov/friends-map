@@ -128,7 +128,6 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMod
     }
   };
 
-  // Return null when no content AND (not own card, OR own card but is place owner — owner uses section-level edit)
   if (!effectiveEdit && !review && photos.length === 0 && (!isOwn || isPlaceOwner)) return null;
 
   const handleSave = async () => {
@@ -159,8 +158,8 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMod
       if (internalEdit) setInternalEdit(false);
       else if (isEditMode) setReviewEditClosed(true); // place form stays open
       else onEditClose?.();
-    } catch {
-      alert('Не удалось сохранить');
+    } catch (err) {
+      alert(err?.response?.data?.error || 'Не удалось сохранить');
     } finally {
       setSaving(false);
     }
@@ -618,8 +617,6 @@ export default function PlacePanel({ place: initialPlace, onClose, onDelete, onR
             const hasContent = !!(review || photos.length > 0);
             const username = review?.username ?? photos[0]?.username ?? (isOwn ? user?.username : null);
             const avatar   = review?.avatar   ?? photos[0]?.avatar   ?? (isOwn ? user?.avatar   : null);
-            // Render own non-owner slot even without content (shows "+ Отзыв" button)
-            // Owner slot with no content → null (owner uses section-level edit button)
             if (!hasContent && (!isOwn || isOwner)) return null;
             return (
               <div key={uid}>
