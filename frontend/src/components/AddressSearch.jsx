@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 function formatDisplay(r) {
   const a = r.address || {};
   const road = a.road || a.pedestrian || a.path || a.footway || a.cycleway || '';
-  const house = a.house_number ? ` ${a.house_number}` : '';
+  const house = a.house_number ? `, ${a.house_number}` : '';
   const city = a.city || a.town || a.village || a.municipality || a.county || '';
   if (road) return `${road}${house}${city ? ', ' + city : ''}`;
   // fallback to first 3 parts of display_name
