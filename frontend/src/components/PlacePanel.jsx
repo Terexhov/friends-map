@@ -595,15 +595,6 @@ export default function PlacePanel({ place: initialPlace, onClose, onDelete, onR
               {place.description
                 ? <p className="place-desc">{place.description}</p>
                 : <p className="text-muted text-sm">Описание не добавлено</p>}
-              {place.website && (
-                <a
-                  href={place.website.startsWith('http') ? place.website : `https://${place.website}`}
-                  target="_blank" rel="noopener noreferrer" className="place-website"
-                >
-                  🌐 {place.website.replace(/^https?:\/\//, '')}
-                </a>
-              )}
-              {place.hashtags && <p className="place-hashtags">{place.hashtags}</p>}
             </>
           )}
         </div>
@@ -615,7 +606,6 @@ export default function PlacePanel({ place: initialPlace, onClose, onDelete, onR
 
           {contributors.map(({ uid, review, photos }) => {
             const isOwn = user?.id === uid;
-            // Fallback chain: review → photo → own auth data (for edit-mode with no content yet)
             const hasContent = !!(review || photos.length > 0);
             const username = review?.username ?? photos[0]?.username ?? (isOwn ? user?.username : null);
             const avatar   = review?.avatar   ?? photos[0]?.avatar   ?? (isOwn ? user?.avatar   : null);
@@ -645,6 +635,20 @@ export default function PlacePanel({ place: initialPlace, onClose, onDelete, onR
               </div>
             );
           })}
+
+          {!editing && (place.website || place.hashtags) && (
+            <div className="place-footer-links">
+              {place.website && (
+                <a
+                  href={place.website.startsWith('http') ? place.website : `https://${place.website}`}
+                  target="_blank" rel="noopener noreferrer" className="place-website"
+                >
+                  🌐 {place.website.replace(/^https?:\/\//, '')}
+                </a>
+              )}
+              {place.hashtags && <p className="place-hashtags">{place.hashtags}</p>}
+            </div>
+          )}
         </div>
       </div>
     </div>
