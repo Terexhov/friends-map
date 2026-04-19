@@ -86,7 +86,7 @@ export default function AddPlaceModal({ coords, draft, onClose, onAdded }) {
 
   const handleClose = () => {
     // save draft only if there's something worth keeping
-    if (name.trim() || description.trim() || address.trim()) {
+    if (name.trim() || description.trim() || website.trim() || hashtags.trim() || ownRating > 0) {
       saveDraft(currentDraft());
     }
     onClose();

@@ -8,7 +8,6 @@ import AuthModal from './components/AuthModal';
 import ProfileModal from './components/ProfileModal';
 import DraftsModal from './components/DraftsModal';
 import SearchFilterBar from './components/SearchFilterBar';
-import AddressSearch from './components/AddressSearch';
 import api from './api';
 
 const EMPTY_FILTERS = { search: '', category: '', cuisine: '', rating: 0, userId: null };
@@ -117,13 +116,6 @@ function AppContent() {
           addressTarget={addressTarget}
           streetGeojson={streetGeojson}
         />
-        <AddressSearch
-          onSelect={({ lat, lng, geojson, isStreet }) => {
-            setAddressTarget({ lat, lng, isStreet });
-            setStreetGeojson(geojson);
-          }}
-          onClear={() => { setAddressTarget(null); setStreetGeojson(null); }}
-        />
         <div className="map-hint-chip">
           {user ? '📍 Нажмите на карту, чтобы добавить место' : '👋 Войдите, чтобы добавлять места и отзывы'}
         </div>
@@ -133,6 +125,11 @@ function AppContent() {
           filters={filters}
           onFiltersChange={setFilters}
           hasPanel={!!selectedData}
+          onAddressSelect={({ lat, lng, geojson, isStreet }) => {
+            setAddressTarget({ lat, lng, isStreet });
+            setStreetGeojson(geojson);
+          }}
+          onAddressClear={() => { setAddressTarget(null); setStreetGeojson(null); }}
         />
 
         {selectedData && (

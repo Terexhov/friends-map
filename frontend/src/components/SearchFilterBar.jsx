@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { UPLOADS_URL } from '../api';
 
 const CATEGORY_LABELS = {
@@ -40,9 +40,32 @@ const CUISINES = [
   { value: 'other', label: '🌍 Другая' },
 ];
 
-export default function SearchFilterBar({ places, filters, onFiltersChange, hasPanel }) {
+function formatAddrDisplay(r) {
+  const a = r.address || {};
+  const road = a.road || a.pedestrian || a.path || a.footway || a.cycleway || '';
+  const house = a.house_number ? `, ${a.house_number}` : '';
+  const city = a.city || a.town || a.village || a.municipality || a.county || '';
+  if (road) return `${road}${house}${city ? ', ' + city : ''}`;
+  return r.display_name.split(', ').slice(0, 3).join(', ');
+}
+
+function isAddrStreet(r) {
+  const gt = r.geojson?.type;
+  return (gt === 'LineString' || gt === 'MultiLineString') && r.class === 'highway';
+}
+
+export default function SearchFilterBar({ places, filters, onFiltersChange, hasPanel, onAddressSelect, onAddressClear }) {
   const [openDropdown, setOpenDropdown] = useState(null);
   const [friendSearch, setFriendSearch] = useState('');
+
+  // Address search state
+  const [addrQuery, setAddrQuery]     = useState('');
+  const [addrResults, setAddrResults] = useState([]);
+  const [addrLoading, setAddrLoading] = useState(false);
+  const [addrOpen, setAddrOpen]       = useState(false);
+  const addrTimer                     = useRef(null);
+  const addrRef                       = useRef(null);
+
   const barRef = useRef(null);
 
   const users = useMemo(() => {
@@ -59,6 +82,7 @@ export default function SearchFilterBar({ places, filters, onFiltersChange, hasP
     [users, friendSearch]
   );
 
+  // Close filter dropdowns on outside click
   useEffect(() => {
     const handler = (e) => {
       if (barRef.current && !barRef.current.contains(e.target)) setOpenDropdown(null);
@@ -66,6 +90,62 @@ export default function SearchFilterBar({ places, filters, onFiltersChange, hasP
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  // Close address dropdown on outside click
+  useEffect(() => {
+    const handler = (e) => {
+      if (addrRef.current && !addrRef.current.contains(e.target)) setAddrOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const searchAddr = useCallback(async (q) => {
+    setAddrLoading(true);
+    setAddrOpen(true);
+    try {
+      const url =
+        `https://nominatim.openstreetmap.org/search` +
+        `?q=${encodeURIComponent(q)}&format=json&addressdetails=1` +
+        `&limit=8&polygon_geojson=1&accept-language=ru`;
+      const res  = await fetch(url);
+      const data = await res.json();
+      setAddrResults(data);
+      setAddrOpen(data.length > 0 || true); // keep open to show "not found"
+    } catch {
+      setAddrResults([]);
+    } finally {
+      setAddrLoading(false);
+    }
+  }, []);
+
+  const handleAddrChange = (e) => {
+    const q = e.target.value;
+    setAddrQuery(q);
+    clearTimeout(addrTimer.current);
+    if (q.trim().length < 2) { setAddrResults([]); setAddrOpen(false); return; }
+    addrTimer.current = setTimeout(() => searchAddr(q), 400);
+  };
+
+  const handleAddrSelect = (r) => {
+    const label    = formatAddrDisplay(r);
+    const street   = isAddrStreet(r);
+    setAddrQuery(label);
+    setAddrOpen(false);
+    onAddressSelect?.({
+      lat:      parseFloat(r.lat),
+      lng:      parseFloat(r.lon),
+      geojson:  street ? r.geojson : null,
+      isStreet: street,
+    });
+  };
+
+  const handleAddrClear = () => {
+    setAddrQuery('');
+    setAddrResults([]);
+    setAddrOpen(false);
+    onAddressClear?.();
+  };
 
   const set = (key, value) => onFiltersChange({ ...filters, [key]: value });
 
@@ -82,18 +162,53 @@ export default function SearchFilterBar({ places, filters, onFiltersChange, hasP
   return (
     <div className={`sfbar-wrap${hasPanel ? ' sfbar-wrap--hidden' : ''}`} ref={barRef}>
       <div className="sfbar">
-        {/* Search input */}
-        <div className="sfbar-search">
-          <span className="sfbar-search-icon">🔍</span>
-          <input
-            className="sfbar-input"
-            placeholder="Поиск по названию..."
-            value={filters.search}
-            onChange={(e) => set('search', e.target.value)}
-          />
-          {filters.search && (
-            <button className="sfbar-input-clear" onClick={() => set('search', '')}>✕</button>
-          )}
+        {/* Search row: place name + address */}
+        <div className="sfbar-search-row">
+          {/* Place name search */}
+          <div className="sfbar-search">
+            <span className="sfbar-search-icon">🔍</span>
+            <input
+              className="sfbar-input"
+              placeholder="Название..."
+              value={filters.search}
+              onChange={(e) => set('search', e.target.value)}
+            />
+            {filters.search && (
+              <button className="sfbar-input-clear" onClick={() => set('search', '')}>✕</button>
+            )}
+          </div>
+
+          <span className="sfbar-search-sep" />
+
+          {/* Address search */}
+          <div className="sfbar-search sfbar-addr-wrap" ref={addrRef}>
+            <span className="sfbar-search-icon">📍</span>
+            <input
+              className="sfbar-input"
+              placeholder="Адрес..."
+              value={addrQuery}
+              onChange={handleAddrChange}
+              onFocus={() => addrResults.length > 0 && setAddrOpen(true)}
+              autoComplete="off"
+            />
+            {addrQuery && (
+              <button className="sfbar-input-clear" onClick={handleAddrClear}>✕</button>
+            )}
+            {addrOpen && (
+              <ul className="sfbar-addr-results">
+                {addrLoading && <li className="sfbar-dd-empty">Поиск…</li>}
+                {!addrLoading && addrResults.length === 0 && (
+                  <li className="sfbar-dd-empty">Ничего не найдено</li>
+                )}
+                {!addrLoading && addrResults.map((r, i) => (
+                  <li key={i} className="sfbar-addr-item" onClick={() => handleAddrSelect(r)}>
+                    <span>{isAddrStreet(r) ? '🛣️' : '📍'}</span>
+                    <span>{formatAddrDisplay(r)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
 
         {/* Filter chips row */}
@@ -176,7 +291,7 @@ export default function SearchFilterBar({ places, filters, onFiltersChange, hasP
             )}
           </div>
 
-          {/* Friend / Author — dropdown right-aligned to avoid off-screen on mobile */}
+          {/* Friend / Author */}
           <div className="sfbar-chip-wrap sfbar-chip-wrap--right">
             <button
               className={`sfbar-chip${filters.userId ? ' active' : ''}`}

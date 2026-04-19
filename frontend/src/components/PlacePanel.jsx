@@ -212,13 +212,13 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMod
                   title="Убрать">✕</button>
               </div>
             ))}
-            {photos.filter((ph) => !pendingDeletes.includes(ph.id)).length + newPhotos.length < 5 && (
+            {photos.filter((ph) => !pendingDeletes.includes(ph.id)).length + newPhotos.length < 6 && (
               <label className="photo-add-tile">
                 + Фото
                 <input type="file" multiple accept="image/*" style={{ display: 'none' }}
                   onChange={(e) => {
                     const kept = photos.filter((ph) => !pendingDeletes.includes(ph.id)).length;
-                    const remaining = 5 - kept - newPhotos.length;
+                    const remaining = 6 - kept - newPhotos.length;
                     setNewPhotos((p) => [...p, ...Array.from(e.target.files).slice(0, remaining)]);
                     e.target.value = '';
                   }}
@@ -265,16 +265,16 @@ function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMod
               </button>
             </div>
           )}
+          {review?.text && (
+            <p className="review-text">{review.text}</p>
+          )}
           {photos.length > 0 && (
-            <div className="photos-grid">
+            <div className="photos-grid" style={{ marginTop: review?.text ? 6 : 0 }}>
               {photos.map((ph, i) => (
                 <img key={ph.id} src={`${UPLOADS_URL}/places/${ph.filename}`} alt=""
                   className="photo-thumb" onClick={() => setLightbox(i)} />
               ))}
             </div>
-          )}
-          {review?.text && (
-            <p className="review-text" style={{ marginTop: photos.length ? 6 : 0 }}>{review.text}</p>
           )}
 
           {/* Comments — shown for any review, input only for non-authors */}
