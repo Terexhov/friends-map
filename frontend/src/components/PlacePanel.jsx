@@ -65,13 +65,13 @@ const PRICE_LEVELS = [
 ];
 
 // Contribution card — view and edit modes, no internal edit toggle
-function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMode, onEditClose, isPlaceOwner }) {
+function UserContribution({ review, photos, isOwn, onRefresh, placeId, isEditMode, onEditClose, isPlaceOwner, defaultEdit }) {
   const { user } = useAuth();
   const [editText, setEditText]               = useState(review?.text || '');
   const [editRating, setEditRating]           = useState(review?.rating || 5);
   const [newPhotos, setNewPhotos]             = useState([]);
   const [pendingDeletes, setPendingDeletes]   = useState([]);
-  const [internalEdit, setInternalEdit]       = useState(false);
+  const [internalEdit, setInternalEdit]       = useState(defaultEdit || false);
   const [reviewEditClosed, setReviewEditClosed] = useState(false); // close review without closing place form
   const [saving, setSaving]                   = useState(false);
   const [deleting, setDeleting]         = useState(false);
@@ -435,6 +435,7 @@ export default function PlacePanel({ place: initialPlace, onClose, onDelete, onR
   const [featured, setFeatured]     = useState(!!place.is_featured);
   const [editing, setEditing]       = useState(false);
   const [shareToast, setShareToast] = useState(false);
+  const [addingReview, setAddingReview] = useState(false);
 
   useEffect(() => { setPlace(initialPlace); }, [initialPlace]);
 
@@ -607,9 +608,9 @@ export default function PlacePanel({ place: initialPlace, onClose, onDelete, onR
           {contributors.map(({ uid, review, photos }) => {
             const isOwn = user?.id === uid;
             const hasContent = !!(review || photos.length > 0);
+            if (!hasContent) return null;
             const username = review?.username ?? photos[0]?.username ?? (isOwn ? user?.username : null);
             const avatar   = review?.avatar   ?? photos[0]?.avatar   ?? (isOwn ? user?.avatar   : null);
-            if (!hasContent && (!isOwn || isOwner)) return null;
             return (
               <div key={uid}>
                 {username && (
@@ -635,6 +636,27 @@ export default function PlacePanel({ place: initialPlace, onClose, onDelete, onR
               </div>
             );
           })}
+
+          {/* Add review for logged-in non-owner users with no content */}
+          {user && !isOwner && !contributors.some(c => c.uid === user.id && (c.review || c.photos.length > 0)) && (
+            addingReview ? (
+              <UserContribution
+                review={null}
+                photos={[]}
+                isOwn={true}
+                onRefresh={() => { onRefresh(); setAddingReview(false); }}
+                placeId={place.id}
+                isEditMode={false}
+                onEditClose={() => setAddingReview(false)}
+                isPlaceOwner={false}
+                defaultEdit={true}
+              />
+            ) : (
+              <button className="btn btn-outline btn-sm" style={{ marginTop: 8 }} onClick={() => setAddingReview(true)}>
+                + Написать отзыв
+              </button>
+            )
+          )}
 
           {!editing && (place.website || place.hashtags) && (
             <div className="place-footer-links">

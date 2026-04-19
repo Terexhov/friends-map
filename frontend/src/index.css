@@ -958,6 +958,11 @@ textarea.form-input { resize: vertical; }
   width: min(680px, calc(100% - 32px));
   transition: opacity .2s, transform .2s;
 }
+.sfbar-wrap--hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(8px);
+}
 .sfbar {
   background: var(--surface);
   border: 1px solid var(--border);

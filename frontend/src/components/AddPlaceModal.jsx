@@ -62,6 +62,7 @@ export default function AddPlaceModal({ coords, draft, onClose, onAdded }) {
   const [hashtags, setHashtags]       = useState(draft?.hashtags || '');
   const [address, setAddress]         = useState(draft?.address || '');
   const [ownRating, setOwnRating]     = useState(draft?.ownRating || 0);
+  const [reviewText, setReviewText]   = useState('');
   const [geocoding, setGeocoding]     = useState(!draft?.address);
   const [photos, setPhotos]           = useState([]);
   const [loading, setLoading]         = useState(false);
@@ -114,6 +115,9 @@ export default function AddPlaceModal({ coords, draft, onClose, onAdded }) {
 
     try {
       const res = await api.post('/places', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      if (reviewText.trim()) {
+        await api.post('/reviews', { place_id: res.data.id, rating: 5, text: reviewText });
+      }
       if (draft?.id) removeDraft(draft.id);
       onAdded(res.data);
     } catch (err) {
@@ -228,6 +232,17 @@ export default function AddPlaceModal({ coords, draft, onClose, onAdded }) {
                 <label className="form-label">Хэштеги</label>
                 <input className="form-input" placeholder="#уютно #кофе" value={hashtags} onChange={(e) => setHashtags(e.target.value)} />
               </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Мой отзыв</label>
+              <textarea
+                className="form-input"
+                placeholder="Расскажите, что вам понравилось..."
+                value={reviewText}
+                onChange={(e) => setReviewText(e.target.value)}
+                rows={3}
+              />
             </div>
 
             <div className="form-group">
